@@ -1,0 +1,74 @@
+// =======================
+// Whitespace & basics
+// =======================
+
+WHITESPACE = _{ " " | "\t" | NEWLINE }
+NEWLINE    = _{ "\r\n" | "\n" }
+
+// =======================
+// Program structure
+// =======================
+
+program     = { SOI ~ statement* ~ EOI }
+
+// A statement is a flow, optionally branched, optionally bound to a variable
+statement   = { flow ~ branch_block? ~ output_binding? ~ ";" }
+
+// Optional variable binding at the end of a statement
+output_binding = { "|" ~ variable }
+
+// =======================
+// Flow
+// =======================
+
+// A flow is a linear pipeline of tools
+flow        = { pipeline }
+
+// Allow both tools and variables
+pipeline    = { flow_item ~ ( "|" ~ flow_item )* }
+
+flow_item   = { tool_ref | variable }
+
+// =======================
+// Branching
+// =======================
+
+// Branching is fan-out from the result of a flow
+branch_block = { ":" ~ branches }
+
+// Comma is REQUIRED between multiple branches
+branches     = { branch ~ ("," ~ branch)* }
+
+// Each branch is named and points to its own flow OR variable
+branch       = { identifier ~ "=>" ~ branch_target }
+
+// A branch can go to either a flow or directly to a variable
+branch_target = { variable | flow ~ output_binding? }
+
+// =======================
+// Tool invocation
+// =======================
+
+tool_ref   = { "[" ~ identifier ~ tool_args? ~ "]" }
+
+tool_args   = { ":" ~ arg ~ ("," ~ arg)* }
+
+arg         = { keyword_arg | positional_arg }
+
+keyword_arg = { identifier ~ ":" ~ literal }
+positional_arg = { literal }
+
+// =======================
+// Literals & identifiers
+// =======================
+
+literal     = { string | number | boolean }
+
+string      = @{ "'" ~ (!"'" ~ ANY)* ~ "'" }
+number      = @{ "-"? ~ ASCII_DIGIT+ }
+boolean     = { "true" | "false" }
+
+identifier  = @{ ASCII_ALPHANUMERIC+ }
+
+// Variable name (same syntax as identifier, semantically distinct)
+variable    = @{ ASCII_ALPHANUMERIC+ }
