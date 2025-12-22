@@ -116,13 +116,7 @@ impl Interpreter {
         input: Value,
     ) -> Result<Value>
     {
-        let tool = match tr.name.as_str() {
-            "input"  => Tool::Input,
-            "output" => Tool::Output,
-            "filter" => Tool::Filter,
-            _ => return Err(anyhow!("Unknown tool encountered: {}", tr.name))
-        };
-
+        let tool = Tool::dispatch(tr.name.as_str())?;
         tool.run(input, &tr.args, &self.ctx).await
     }
 

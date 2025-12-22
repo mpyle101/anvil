@@ -1,0 +1,5 @@
+[input:'./data/jester.parquet'] | [filter:'"?table?"."DISTANCE" = 2475']:
+	true => df,
+	false => [output:'./data/false.csv'];
+
+df | [output:'./data/true.csv'];

@@ -1,5 +1,5 @@
-[input:'./data/jester.parquet'] | [filter:'"?table?"."DISTANCE" = 2475']:
-	true => df,
-	false => [output:'./data/false.csv'];
+[input:'./data/messy.parquet'] | [filter:'"?table?"."three" = true']:
+	true => [show],
+	false => df;
 
-df | [output:'./data/true.csv'];
+df | [show];

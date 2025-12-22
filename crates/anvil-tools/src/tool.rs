@@ -5,15 +5,35 @@ use datafusion::execution::context::SessionContext;
 
 use anvil_parse::ast::{Literal, ToolArg};
 
-use crate::{InputTool, OutputTool, FilterTool, Value};
+use crate::{
+    InputTool,
+    OutputTool,
+    FilterTool,
+    ShowTool,
+    Value
+};
 
 pub enum Tool {
     Input,
     Output,
     Filter,
+    Show,
 }
 
 impl Tool {
+    pub fn dispatch(name: &str) -> Result<Tool>
+    {
+        let tool = match name {
+            "input"  => Tool::Input,
+            "output" => Tool::Output,
+            "filter" => Tool::Filter,
+            "show"   => Tool::Show,
+            _ => return Err(anyhow!("Unknown tool encountered: {name}"))
+        };
+
+        Ok(tool)
+    }
+
     pub async fn run(
         &self,
         input: Value,
@@ -24,7 +44,8 @@ impl Tool {
         match self {
             Tool::Input  => InputTool::run(input, args, ctx).await,
             Tool::Output => OutputTool::run(input, args).await,
-            Tool::Filter => FilterTool::run(input, args).await
+            Tool::Filter => FilterTool::run(input, args).await,
+            Tool::Show   => ShowTool::run(input).await,
         }
     }
 }

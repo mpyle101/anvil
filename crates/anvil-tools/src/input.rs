@@ -27,7 +27,7 @@ impl InputTool {
             Value::None => ()
         };
 
-        let args = InputArgs::try_from(args)?;
+        let args: InputArgs = args.try_into()?;
         let df = match args.format {
             csv     => ctx.read_csv(&args.path, CsvReadOptions::default()).await?,
             json    => ctx.read_json(&args.path, NdJsonReadOptions::default()).await?,

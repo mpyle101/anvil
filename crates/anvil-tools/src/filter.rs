@@ -20,7 +20,7 @@ impl FilterTool {
             _ => return Err(anyhow!("filter requires single input")),
         };
 
-        let args = FilterArgs::try_from((args, &df))?;
+        let args: FilterArgs = (args, &df).try_into()?;
         let df_true  = df.clone().filter(args.predicate.clone())?;
         let df_false = df.filter(args.predicate.is_false())?;
 

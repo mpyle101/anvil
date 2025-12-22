@@ -26,7 +26,7 @@ impl OutputTool {
             }
         };
 
-        let args = OutputArgs::try_from(args)?;
+        let args: OutputArgs = args.try_into()?;
         let options = DataFrameWriteOptions::new()
             .with_insert_operation(args.mode)
             .with_single_file_output(args.single);
