@@ -32,7 +32,6 @@ impl Interpreter {
 
     async fn eval_statement(&mut self, stmt: Statement) -> Result<()>
     {
-        println!("STMT: {stmt:?}");
         let value = self.eval_flow(&stmt.flow, Value::None).await?;
 
         if let Some(branch) = &stmt.branch {

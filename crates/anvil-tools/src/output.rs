@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use datafusion::dataframe::DataFrameWriteOptions;
 use datafusion::logical_expr::logical_plan::dml::InsertOp;
 
@@ -12,8 +12,10 @@ impl OutputTool {
     pub async fn run(
         input: Value,
         args: &[ToolArg],
-    ) -> anyhow::Result<Value>
+    ) -> Result<Value>
     {
+        use OutputFormat::*;
+
         let df = match input {
             Value::Single(df) => df,
             Value::None => {
@@ -24,41 +26,76 @@ impl OutputTool {
             }
         };
 
+        let args = OutputArgs::try_from(args)?;
+        let options = DataFrameWriteOptions::new()
+            .with_insert_operation(args.mode)
+            .with_single_file_output(args.single);
+
+        match args.format {
+            csv     => df.write_csv(&args.path, options, None).await?,
+            json    => df.write_json(&args.path, options, None).await?,
+            parquet => df.write_parquet(&args.path, options, None).await?,
+        };
+
+        Ok(Value::None)
+    }
+}
+
+
+#[allow(non_camel_case_types)]
+enum OutputFormat {
+    csv,
+    json,
+    parquet
+}
+
+struct OutputArgs {
+    format: OutputFormat,
+    mode: InsertOp,
+    path: String,
+    single: bool,
+}
+
+impl TryFrom<&[ToolArg]> for OutputArgs {
+    type Error = anyhow::Error;
+
+    fn try_from(args: &[ToolArg]) -> Result<Self>
+    {
         let args = ToolArgs::new(args)?;
-        args.check_named_args(&["format", "mode", "single"])?;
+        args.check_named_args(&["format"])?;
 
         let path = args.require_positional_string(0, "path")?;
+        let single = args.optional_bool("single")?.unwrap_or(true);
 
         let format = args.optional_string("format")?;
-        let format = format.unwrap_or_else(|| {
-            if path.ends_with(".csv") { "csv" }
-            else if path.ends_with(".json") { "json" }
-            else if path.ends_with(".avro") { "avro" }
-            else { "parquet" }
-            .to_string()
-        });
+        let format = match format {
+            Some(s) => {
+                match s.as_str() {
+                    "csv"     => OutputFormat::csv,
+                    "json"    => OutputFormat::json,
+                    "parquet" => OutputFormat::parquet,
+                    _ => {
+                        return Err(anyhow!("unsupported input format {s}"))
+                    }
+                }
+            }
+            None => {
+                if path.ends_with(".csv") { OutputFormat::csv }
+                else if path.ends_with(".json") { OutputFormat::json }
+                else { OutputFormat::parquet }
+            }
+        };
 
         let mode = args.optional_string("mode")?.unwrap_or_else(|| "append".into());
-        let options = DataFrameWriteOptions::new();
-        let options = match mode.as_str() {
-            "append"    => options.with_insert_operation(InsertOp::Append),
-            "overwrite" => options.with_insert_operation(InsertOp::Overwrite),
-            "replace"   => options.with_insert_operation(InsertOp::Replace),
+        let mode = match mode.as_str() {
+            "append"    => InsertOp::Append,
+            "overwrite" => InsertOp::Overwrite,
+            "replace"   => InsertOp::Replace,
             _ => {
                 return Err(anyhow!("mode must be 'append', 'overwrite' or 'replace': {mode}"))
             }
         };
 
-        let single = args.optional_bool("single")?.unwrap_or(true);
-        let options = options.with_single_file_output(single);
-
-        match format.as_str() {
-            "csv"     => df.write_csv(&path, options, None).await?,
-            "json"    => df.write_json(&path, options, None).await?,
-            "parquet" => df.write_parquet(&path, options, None).await?,
-            _ => return Err(anyhow!("unsupported output format '{}'", format)),
-        };
-
-        Ok(Value::None)
+        Ok(OutputArgs { format, mode, path, single })
     }
 }

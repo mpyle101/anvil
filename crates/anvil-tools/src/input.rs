@@ -1,11 +1,13 @@
+use std::convert::TryFrom;
 use std::path::Path;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use datafusion::execution::context::SessionContext;
 use datafusion::prelude::{CsvReadOptions, NdJsonReadOptions, ParquetReadOptions};
 
 use anvil_parse::ast::ToolArg;
 use crate::{ToolArgs, Value};
+
 
 pub struct InputTool;
 
@@ -14,12 +16,45 @@ impl InputTool {
         input: Value,
         args: &[ToolArg],
         ctx: &SessionContext,
-    ) -> anyhow::Result<Value>
+    ) -> Result<Value>
     {
-        if let Value::Single(_) = input {
-            return Err(anyhow!("input tool does not take input"));
-        }
+        use InputFormat::*;
 
+        match input {
+            Value::Single(_) | Value::Multiple(_) => {
+                return Err(anyhow!("input tool does not take input"));
+            }
+            Value::None => ()
+        };
+
+        let args = InputArgs::try_from(args)?;
+        let df = match args.format {
+            csv     => ctx.read_csv(&args.path, CsvReadOptions::default()).await?,
+            json    => ctx.read_json(&args.path, NdJsonReadOptions::default()).await?,
+            parquet => ctx.read_parquet(&args.path, ParquetReadOptions::default()).await?,
+        };
+
+        Ok(Value::Single(df))
+    }
+}
+
+#[allow(non_camel_case_types)]
+enum InputFormat {
+    csv,
+    json,
+    parquet
+}
+
+struct InputArgs {
+    format: InputFormat,
+    path: String,
+}
+
+impl TryFrom<&[ToolArg]> for InputArgs {
+    type Error = anyhow::Error;
+
+    fn try_from(args: &[ToolArg]) -> Result<Self>
+    {
         let args = ToolArgs::new(args)?;
         args.check_named_args(&["format"])?;
 
@@ -29,21 +64,24 @@ impl InputTool {
         }
 
         let format = args.optional_string("format")?;
-        let format = format.unwrap_or_else(|| {
-            if path.ends_with(".csv") { "csv" }
-            else if path.ends_with(".json") { "json" }
-            else if path.ends_with(".avro") { "avro" }
-            else { "parquet" }
-            .to_string()
-        });
-
-        let df = match format.as_str() {
-            "csv"     => ctx.read_csv(&path, CsvReadOptions::new()).await?,
-            "json"    => ctx.read_json(&path, NdJsonReadOptions::default()).await?,
-            "parquet" => ctx.read_parquet(&path, ParquetReadOptions::default()).await?,
-            _ => return Err(anyhow!("unsupported input format '{format}'")),
+        let format = match format {
+            Some(s) => {
+                match s.as_str() {
+                    "csv"     => InputFormat::csv,
+                    "json"    => InputFormat::json,
+                    "parquet" => InputFormat::parquet,
+                    _ => {
+                        return Err(anyhow!("unsupported input format {s}"))
+                    }
+                }
+            }
+            None => {
+                if path.ends_with(".csv") { InputFormat::csv }
+                else if path.ends_with(".json") { InputFormat::json }
+                else { InputFormat::parquet }
+            }
         };
 
-        Ok(Value::Single(df))
+        Ok(InputArgs { format, path })
     }
 }
