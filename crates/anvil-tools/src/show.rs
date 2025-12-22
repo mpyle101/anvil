@@ -8,13 +8,14 @@ pub struct ShowTool;
 impl ShowTool {
     pub async fn run(input: Value) -> Result<Value>
     {
-        let df = match input {
-            Value::Single(df) => df,
+        let data = match input {
+            Value::Single(data) => data,
             _ => return Err(anyhow!("filter requires single input")),
         };
 
-        df.clone().show().await?;
+        println!("Source: {}", data.src);
+        data.df.clone().show().await?;
 
-        Ok(Value::Single(df))
+        Ok(Value::Single(data))
     }
 }

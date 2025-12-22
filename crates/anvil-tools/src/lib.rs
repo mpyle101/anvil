@@ -10,4 +10,4 @@ pub use filter::FilterTool;
 pub use output::OutputTool;
 pub use show::ShowTool;
 pub use tool::{Tool, ToolArgs};
-pub use value::Value;
+pub use value::{Data, Value};

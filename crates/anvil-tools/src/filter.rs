@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use datafusion::prelude::{DataFrame, Expr};
 
 use anvil_parse::ast::ToolArg;
-use crate::{ToolArgs, Value};
+use crate::{Data, ToolArgs, Value};
 
 
 pub struct FilterTool;
@@ -15,8 +15,8 @@ impl FilterTool {
         args: &[ToolArg]
     ) -> Result<Value>
     {
-        let df = match input {
-            Value::Single(df) => df,
+        let Data { df, src } = match input {
+            Value::Single(data) => data,
             _ => return Err(anyhow!("filter requires single input")),
         };
 
@@ -24,7 +24,10 @@ impl FilterTool {
         let df_true  = df.clone().filter(args.predicate.clone())?;
         let df_false = df.filter(args.predicate.is_false())?;
 
-        Ok(Value::Multiple(vec![df_true, df_false]))
+        Ok(Value::Multiple(vec![
+            Data { df: df_true, src: src.clone() }, 
+            Data { df: df_false, src },
+        ]))
     }
 }
 

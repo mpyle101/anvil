@@ -3,7 +3,7 @@ use datafusion::dataframe::DataFrameWriteOptions;
 use datafusion::logical_expr::logical_plan::dml::InsertOp;
 
 use anvil_parse::ast::ToolArg;
-use crate::{ToolArgs, Value};
+use crate::{Data, ToolArgs, Value};
 
 
 pub struct OutputTool;
@@ -17,7 +17,7 @@ impl OutputTool {
         use OutputFormat::*;
 
         let df = match input {
-            Value::Single(df) => df,
+            Value::Single(Data {df, ..}) => df,
             Value::None => {
                 return Err(anyhow!("previous tool does not produce output"))
             }

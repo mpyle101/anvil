@@ -6,7 +6,7 @@ use datafusion::execution::context::SessionContext;
 use datafusion::prelude::{CsvReadOptions, NdJsonReadOptions, ParquetReadOptions};
 
 use anvil_parse::ast::ToolArg;
-use crate::{ToolArgs, Value};
+use crate::{Data, ToolArgs, Value};
 
 
 pub struct InputTool;
@@ -34,7 +34,7 @@ impl InputTool {
             parquet => ctx.read_parquet(&args.path, ParquetReadOptions::default()).await?,
         };
 
-        Ok(Value::Single(df))
+        Ok(Value::Single(Data { df, src: args.path }))
     }
 }
 
