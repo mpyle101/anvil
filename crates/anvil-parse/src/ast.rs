@@ -78,7 +78,7 @@ impl ToolArg {
 
 #[derive(Clone, Debug)]
 pub enum Literal {
-    String(String),
-    Number(f64),
     Boolean(bool),
+    Integer(i64),
+    String(String),
 }

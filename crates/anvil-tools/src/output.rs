@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use anyhow::{anyhow, Result};
 use datafusion::dataframe::DataFrameWriteOptions;
 use datafusion::logical_expr::logical_plan::dml::InsertOp;
@@ -64,7 +66,8 @@ impl TryFrom<&[ToolArg]> for OutputArgs {
         let args = ToolArgs::new(args)?;
         args.check_named_args(&["format"])?;
 
-        let path = args.require_positional_string(0, "path")?;
+        let path   = args.require_positional_string(0, "path")?;
+        let fpath  = Path::new(&path);
         let single = args.optional_bool("single")?.unwrap_or(true);
 
         let format = args.optional_string("format")?;
@@ -75,14 +78,20 @@ impl TryFrom<&[ToolArg]> for OutputArgs {
                     "json"    => OutputFormat::json,
                     "parquet" => OutputFormat::parquet,
                     _ => {
-                        return Err(anyhow!("unsupported input format {s}"))
+                        return Err(anyhow!("input file format unsupported {s}"))
                     }
                 }
             }
             None => {
-                if path.ends_with(".csv") { OutputFormat::csv }
-                else if path.ends_with(".json") { OutputFormat::json }
-                else { OutputFormat::parquet }
+                if let Some(s) = fpath.extension() {
+                    match s.to_str() {
+                        Some("csv")  => OutputFormat::csv,
+                        Some("json") => OutputFormat::json,
+                        _            => OutputFormat::parquet
+                    }
+                } else {
+                    OutputFormat::parquet
+                }
             }
         };
 

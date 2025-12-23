@@ -15,19 +15,16 @@ program     = { SOI ~ statement* ~ EOI }
 statement   = { flow ~ branch_block? ~ output_binding? ~ ";" }
 
 // Optional variable binding at the end of a statement
-output_binding = { "|" ~ variable }
+output_binding = { "|>" ~ variable }
 
 // =======================
 // Flow
 // =======================
 
 // A flow is a linear pipeline of tools
-flow        = { pipeline }
+flow      = { flow_item ~ ("|" ~ flow_item)* }
 
-// Allow both tools and variables
-pipeline    = { flow_item ~ ( "|" ~ flow_item )* }
-
-flow_item   = { tool_ref }
+flow_item = { tool_ref | variable }
 
 // =======================
 // Branching
@@ -49,9 +46,9 @@ branch_target = { variable | flow ~ output_binding? }
 // Tool invocation
 // =======================
 
-tool_ref    = { "[" ~ identifier ~ tool_args? ~ "]" }
+tool_ref    = { "[" ~ identifier ~ (":" ~ tool_args)? ~ "]" }
 
-tool_args = { ":" ~ arg ~ ("," ~ arg)* }
+tool_args   = @{ (!"]" ~ ANY)* }
 
 arg         = { keyword_arg | positional_arg }
 

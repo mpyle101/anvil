@@ -1,4 +1,3 @@
-use std::convert::TryFrom;
 use std::path::Path;
 
 use anyhow::{anyhow, Result};
@@ -59,8 +58,9 @@ impl TryFrom<&[ToolArg]> for InputArgs {
         args.check_named_args(&["format"])?;
 
         let path = args.require_positional_string(0, "input: path")?;
-        if !Path::new(&path).exists() {
-            return Err(anyhow!("File not found: {path}"));
+        let fpath = Path::new(&path);
+        if !fpath.exists() {
+            return Err(anyhow!("input file not found: {}", fpath.display()));
         }
 
         let format = args.optional_string("format")?;
@@ -71,14 +71,20 @@ impl TryFrom<&[ToolArg]> for InputArgs {
                     "json"    => InputFormat::json,
                     "parquet" => InputFormat::parquet,
                     _ => {
-                        return Err(anyhow!("unsupported input format {s}"))
+                        return Err(anyhow!("input file format unsupported {s}"))
                     }
                 }
             }
             None => {
-                if path.ends_with(".csv") { InputFormat::csv }
-                else if path.ends_with(".json") { InputFormat::json }
-                else { InputFormat::parquet }
+                if let Some(s) = fpath.extension() {
+                    match s.to_str() {
+                        Some("csv")  => InputFormat::csv,
+                        Some("json") => InputFormat::json,
+                        _            => InputFormat::parquet
+                    }
+                } else {
+                    InputFormat::parquet
+                }
             }
         };
 

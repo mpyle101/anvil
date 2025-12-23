@@ -52,16 +52,6 @@ fn parse_statement(pair: Pair<Rule>) -> Result<Statement>
     })
 }
 
-fn parse_flow(pair: Pair<Rule>) -> Result<Flow>
-{
-    let pipeline = pair
-        .into_inner()
-        .find(|p| p.as_rule() == Rule::pipeline)
-        .ok_or_else(|| anyhow!("flow missing pipeline"))?;
-
-    parse_pipeline(pipeline)
-}
-
 fn parse_branch_block(pair: Pair<Rule>) -> anyhow::Result<BranchBlock>
 {
     let mut branches = Vec::new();
@@ -89,10 +79,10 @@ fn parse_variable_binding(pair: Pair<Rule>) -> anyhow::Result<String>
     Ok(var.as_str().to_string())
 }
 
-fn parse_pipeline(pair: Pair<Rule>) -> anyhow::Result<Flow> {
+fn parse_flow(flow: Pair<Rule>) -> anyhow::Result<Flow> {
     let mut items = Vec::new();
 
-    for flow_item in pair.into_inner() {
+    for flow_item in flow.into_inner() {
         let inner = flow_item.into_inner().next()
             .ok_or_else(|| anyhow!("empty flow item"))?;
 
@@ -104,13 +94,13 @@ fn parse_pipeline(pair: Pair<Rule>) -> anyhow::Result<Flow> {
                 items.push(FlowItem::Variable(inner.as_str().to_string()));
             }
             _ => {
-                return Err(anyhow!("unexpected rule inside pipeline_item: {:?}", inner.as_rule()))
+                return Err(anyhow!("unexpected rule inside flow: {:?}", inner.as_rule()))
             }
         }
     }
 
     if items.is_empty() {
-        return Err(anyhow!("pipeline must contain at least one item"));
+        return Err(anyhow!("flow must contain at least one item"));
     }
 
     Ok(Flow { items })
@@ -121,32 +111,14 @@ fn parse_tool_ref(pair: Pair<Rule>) -> Result<ToolRef>
     let mut inner = pair.into_inner();
     let name = inner.next().unwrap().as_str().to_string();
 
-    let mut args = Vec::new();
-    if let Some(p) = inner.next() {
-        for arg in p.into_inner() {
-            args.push(parse_arg(arg)?);
-        }
-    }
+    let tool_args = inner.next().map(|p| p.as_str()).unwrap_or("");
+    let args = if !tool_args.is_empty() {
+        parse_args(tool_args)?
+    } else {
+        Vec::new()
+    };
 
     Ok(ToolRef { name, args })
-}
-
-fn parse_arg(pair: Pair<Rule>) -> Result<ToolArg>
-{
-    let inner = pair.into_inner().next().unwrap();
-
-    match inner.as_rule() {
-        Rule::keyword_arg => {
-            let mut parts = inner.into_inner();
-            let key = parts.next().unwrap().as_str().to_string();
-            let value = parse_literal(parts.next().unwrap())?;
-            Ok(ToolArg::Keyword { key, value })
-        }
-        Rule::positional_arg => {
-            Ok(ToolArg::Positional(parse_literal(inner.into_inner().next().unwrap())?))
-        }
-        _ => unreachable!(),
-    }
 }
 
 fn parse_branch(pair: Pair<Rule>) -> anyhow::Result<Branch>
@@ -179,26 +151,96 @@ fn parse_branch_target(pair: Pair<Rule>) -> anyhow::Result<BranchTarget>
     }
 }
 
-fn parse_literal(pair: Pair<Rule>) -> Result<Literal>
+fn parse_args(input: &str) -> Result<Vec<ToolArg>>
 {
-    let pair = match pair.as_rule() {
-        Rule::literal => pair.into_inner().next().unwrap(),
-        _ => pair,
-    };
+    let tokens = tokenize(input);
+    let mut args = Vec::new();
+    let mut i = 0;
 
-    match pair.as_rule() {
-        Rule::string => {
-            let s = pair.as_str();
-            Ok(Literal::String(s[1..s.len() - 1].to_string()))
-        }
-        Rule::number => {
-            Ok(Literal::Number(pair.as_str().parse()?))
-        }
-        Rule::boolean => {
-            Ok(Literal::Boolean(pair.as_str() == "true"))
-        }
-        _ => {
-            Err(anyhow::anyhow!("unexpected value literal: {:?}", pair.as_rule()))
+    while i < tokens.len() {
+        if i + 2 < tokens.len() && let (
+            Token::Ident(key),
+            Token::Equals,
+            Token::String(val),
+        ) = (&tokens[i], &tokens[i + 1], &tokens[i + 2])
+        {
+            args.push(ToolArg::Keyword {
+                key: key.clone(),
+                value: parse_literal(val),
+            });
+            i += 3;
+        } else if let Token::String(val) = &tokens[i] {
+            args.push(ToolArg::Positional(parse_literal(val)));
+            i += 1;
+        } else if let Token::Ident(val) = &tokens[i] {
+            args.push(ToolArg::Positional(parse_literal(val)));
+            i += 1;
+        } else {
+            return Err(anyhow!("invalid tool argument syntax: {input}"));
         }
     }
+
+    Ok(args)
+}
+
+fn parse_literal(s: &str) -> Literal
+{
+    if s == "true" || s == "false" {
+        Literal::Boolean(s == "true")
+    } else if let Ok(n) = s.parse::<i64>() {
+        Literal::Integer(n)
+    } else {
+        Literal::String(s.to_string())
+    }
+}
+
+#[derive(Debug, Clone)]
+enum Token {
+    Ident(String),
+    String(String),
+    Equals,
+}
+
+fn tokenize(input: &str) -> Vec<Token>
+{
+    let mut tokens = Vec::new();
+    let mut chars = input.chars().peekable();
+
+    while let Some(&c) = chars.peek() {
+        match c {
+            ' ' | '\t' | '\n' => {
+                chars.next();
+            }
+            '=' => {
+                chars.next();
+                tokens.push(Token::Equals);
+            }
+            '\'' | '"' => {
+                let quote = chars.next().unwrap();
+                let mut s = String::new();
+
+                for ch in chars.by_ref() {
+                    if ch == quote {
+                        break;
+                    }
+                    s.push(ch);
+                }
+
+                tokens.push(Token::String(s));
+            }
+            _ => {
+                let mut s = String::new();
+                while let Some(&ch) = chars.peek() {
+                    if ch.is_whitespace() || ch == '=' {
+                        break;
+                    }
+                    s.push(ch);
+                    chars.next();
+                }
+                tokens.push(Token::Ident(s));
+            }
+        }
+    }
+
+    tokens
 }

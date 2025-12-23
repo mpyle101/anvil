@@ -1,0 +1,5 @@
+[input: './data/messy.parquet'] | [filter: '"?table?"."three" = true']:
+	true => [show],
+	false => df;
+
+df | [show];

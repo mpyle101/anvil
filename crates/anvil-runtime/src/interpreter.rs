@@ -34,12 +34,12 @@ impl Interpreter {
     {
         let value = self.eval_flow(&stmt.flow, Value::None).await?;
 
-        if let Some(branch) = &stmt.branch {
-            self.eval_branch_block(branch, value.clone()).await?;
+        if let Some(name) = &stmt.variable {
+            self.bind_variable(name, value.clone())?;
         }
 
-        if let Some(name) = &stmt.variable {
-            self.bind_variable(name, value)?;
+        if let Some(branch) = &stmt.branch {
+            self.eval_branch_block(branch, value).await?;
         }
 
         Ok(())

@@ -1,5 +1,5 @@
-[input:'./data/right.parquet'] | df;
+[input: './data/right.parquet'] |> df;
 
-[input:'./data/left.parquet']
-    | [join:'df', type='inner', left='country', right='country']
-    | [output:'./data/joined.parquet'];
+[input: './data/left.parquet']
+    | [join: 'df' type='inner' left='country' right='country']
+    | [output: './data/joined.parquet'];
