@@ -40,7 +40,7 @@ fn parse_statement(pair: Pair<Rule>) -> Result<Statement>
             Rule::output_binding => {
                 variable = Some(parse_variable_binding(inner)?);
             }
-            Rule::EOI | Rule::WHITESPACE => {}
+//            Rule::EOI | Rule::WHITESPACE => {}
             _ => {}
         }
     }
@@ -92,6 +92,13 @@ fn parse_flow(flow: Pair<Rule>) -> anyhow::Result<Flow> {
             }
             Rule::variable => {
                 items.push(FlowItem::Variable(inner.as_str().to_string()));
+            }
+            Rule::group => {
+                let mut flows = Vec::new();
+                for flow in inner.into_inner() {
+                    flows.push(parse_flow(flow)?)
+                }
+                items.push(FlowItem::Group(flows));
             }
             _ => {
                 return Err(anyhow!("unexpected rule inside flow: {:?}", inner.as_rule()))

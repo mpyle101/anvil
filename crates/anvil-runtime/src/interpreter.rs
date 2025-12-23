@@ -63,6 +63,17 @@ impl Interpreter {
                         .cloned()
                         .ok_or_else(|| anyhow!("undefined variable '{name}'"))?
                 }
+                FlowItem::Group(flows) => {
+                    let mut data = Vec::new();
+                    for f in flows {
+                        match Box::pin(self.eval_flow(f, Value::None)).await? {
+                            Value::None => {},
+                            Value::Single(d) => data.push(d),
+                            Value::Multiple(mut d) => data.append(&mut d)
+                        }
+                    }
+                    Value::Multiple(data)
+                }
             }
         }
 

@@ -26,7 +26,9 @@ output_binding = { BIND ~ variable }
 // A flow is a linear pipeline of tools
 flow      = { flow_item ~ ("|" ~ flow_item)* }
 
-flow_item = { tool_ref | variable }
+flow_item = { tool_ref | variable | group }
+
+group = { "(" ~ flow ~ ("," ~ flow)+ ~ ")" }
 
 // =======================
 // Branching

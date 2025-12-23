@@ -23,6 +23,7 @@ pub struct Flow {
 
 #[derive(Debug)]
 pub enum FlowItem {
+    Group(Vec<Flow>),
     Tool(ToolRef),
     Variable(String),
 }

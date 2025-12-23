@@ -1,44 +1,29 @@
-use std::collections::HashMap;
-use std::convert::TryFrom;
-
 use anyhow::{anyhow, Result};
 use datafusion::prelude::JoinType;
 
 use anvil_parse::ast::ToolArg;
 use crate::{Data, ToolArgs, Value};
 
-type Variables = HashMap<String, Value>;
 
 pub struct JoinTool;
 
 impl JoinTool {
     pub async fn run(
         input: Value,
-        args: &[ToolArg],
-        vars: &Variables
+        args: &[ToolArg]
     ) -> Result<Value>
     {
-        let Data { df, .. } = match input {
-            Value::Single(data) => data,
+        let data = match input {
+            Value::Multiple(data) => data,
             _ => return Err(anyhow!("join requires single input")),
         };
-        let df_left = df;
+        if data.len() != 2 {
+            return Err(anyhow!("join requires two data sets: (left, right)"))
+        }
+        let df_left  = data[0].df.clone();
+        let df_right = data[1].df.clone();
 
         let args: JoinArgs = args.try_into()?;
-
-        let var = vars.get(&args.df).ok_or_else(
-            || anyhow!("right join variable does not exist '{}'", args.df)
-        )?.clone();
-
-        let Data { df:df_right, .. } = match var {
-            Value::Single(data) => data,
-            Value::Multiple(_) => {
-                return Err(anyhow!("join only takes a single right side input"))
-            }
-            Value::None => {
-                return Err(anyhow!("join require right side input"))
-            }
-        } ;
         let cols_left  = args.left.split(',').collect::<Vec<_>>();
         let cols_right = args.right.split(',').collect::<Vec<_>>();
 
@@ -49,7 +34,6 @@ impl JoinTool {
 }
 
 struct JoinArgs {
-    df: String,
     left: String,
     right: String,
     join_type: JoinType,
@@ -62,8 +46,6 @@ impl TryFrom<&[ToolArg]> for JoinArgs {
     {
         let args = ToolArgs::new(args)?;
         args.check_named_args(&["type", "left", "right"])?;
-
-        let df = args.require_positional_string(0, "df")?;
 
         let left = args.optional_string("left")?.ok_or(
             anyhow!("join 'left' columns argument does not exist")
@@ -85,6 +67,6 @@ impl TryFrom<&[ToolArg]> for JoinArgs {
         };
 
 
-        Ok(JoinArgs { df, left, right, join_type })
+        Ok(JoinArgs { left, right, join_type })
     }
 }
