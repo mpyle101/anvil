@@ -9,6 +9,7 @@ use crate::{
     InputTool,
     OutputTool,
     FilterTool,
+    JoinTool,
     ShowTool,
     Value
 };
@@ -17,6 +18,7 @@ pub enum Tool {
     Input,
     Output,
     Filter,
+    Join,
     Show,
 }
 
@@ -27,6 +29,7 @@ impl Tool {
             "input"  => Tool::Input,
             "output" => Tool::Output,
             "filter" => Tool::Filter,
+            "join"   => Tool::Join,
             "show"   => Tool::Show,
             _ => return Err(anyhow!("Unknown tool encountered: {name}"))
         };
@@ -39,12 +42,14 @@ impl Tool {
         input: Value,
         args: &[ToolArg],
         ctx: &SessionContext,
+        vars: &HashMap<String, Value>
     ) -> anyhow::Result<Value>
     {
         match self {
             Tool::Input  => InputTool::run(input, args, ctx).await,
             Tool::Output => OutputTool::run(input, args).await,
             Tool::Filter => FilterTool::run(input, args).await,
+            Tool::Join   => JoinTool::run(input, args, vars).await,
             Tool::Show   => ShowTool::run(input).await,
         }
     }

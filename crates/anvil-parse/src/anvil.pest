@@ -27,7 +27,7 @@ flow        = { pipeline }
 // Allow both tools and variables
 pipeline    = { flow_item ~ ( "|" ~ flow_item )* }
 
-flow_item   = { tool_ref | variable }
+flow_item   = { tool_ref }
 
 // =======================
 // Branching
@@ -49,13 +49,13 @@ branch_target = { variable | flow ~ output_binding? }
 // Tool invocation
 // =======================
 
-tool_ref   = { "[" ~ identifier ~ tool_args? ~ "]" }
+tool_ref    = { "[" ~ identifier ~ tool_args? ~ "]" }
 
-tool_args   = { ":" ~ arg ~ ("," ~ arg)* }
+tool_args = { ":" ~ arg ~ ("," ~ arg)* }
 
 arg         = { keyword_arg | positional_arg }
 
-keyword_arg = { identifier ~ ":" ~ literal }
+keyword_arg = { identifier ~ "=" ~ literal }
 positional_arg = { literal }
 
 // =======================

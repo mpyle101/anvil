@@ -58,7 +58,7 @@ impl TryFrom<&[ToolArg]> for InputArgs {
         let args = ToolArgs::new(args)?;
         args.check_named_args(&["format"])?;
 
-        let path = args.require_positional_string(0, "path")?;
+        let path = args.require_positional_string(0, "input: path")?;
         if !Path::new(&path).exists() {
             return Err(anyhow!("File not found: {path}"));
         }

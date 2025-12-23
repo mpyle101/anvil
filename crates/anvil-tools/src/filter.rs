@@ -1,7 +1,6 @@
 use std::convert::TryFrom;
 
 use anyhow::{anyhow, Result};
-use datafusion::prelude::{DataFrame, Expr};
 
 use anvil_parse::ast::ToolArg;
 use crate::{Data, ToolArgs, Value};
@@ -20,9 +19,11 @@ impl FilterTool {
             _ => return Err(anyhow!("filter requires single input")),
         };
 
-        let args: FilterArgs = (args, &df).try_into()?;
-        let df_true  = df.clone().filter(args.predicate.clone())?;
-        let df_false = df.filter(args.predicate.is_false())?;
+        let args: FilterArgs = args.try_into()?;
+        let expr = df.parse_sql_expr(args.predicate.as_str())?;
+
+        let df_true  = df.clone().filter(expr.clone())?;
+        let df_false = df.filter(expr.is_false())?;
 
         Ok(Value::Multiple(vec![
             Data { df: df_true, src: src.clone() }, 
@@ -32,20 +33,19 @@ impl FilterTool {
 }
 
 struct FilterArgs {
-    predicate: Expr,
+    predicate: String,
 }
 
-impl TryFrom<(&[ToolArg], &DataFrame)> for FilterArgs {
+impl TryFrom<&[ToolArg]> for FilterArgs {
     type Error = anyhow::Error;
 
-    fn try_from((args, df): (&[ToolArg], &DataFrame)) -> Result<Self>
+    fn try_from(args: &[ToolArg]) -> Result<Self>
     {
         let args = ToolArgs::new(args)?;
         args.check_named_args(&[])?;
 
         let predicate = args.require_positional_string(0, "path")?;
-        let expr = df.parse_sql_expr(predicate.as_str())?;
 
-        Ok(FilterArgs { predicate: expr })
+        Ok(FilterArgs { predicate })
     }
 }

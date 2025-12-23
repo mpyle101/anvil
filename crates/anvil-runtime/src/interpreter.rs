@@ -35,8 +35,10 @@ impl Interpreter {
         let value = self.eval_flow(&stmt.flow, Value::None).await?;
 
         if let Some(branch) = &stmt.branch {
-            self.eval_branch_block(branch, value).await?;
-        } else if let Some(name) = &stmt.variable {
+            self.eval_branch_block(branch, value.clone()).await?;
+        }
+
+        if let Some(name) = &stmt.variable {
             self.bind_variable(name, value)?;
         }
 
@@ -117,7 +119,7 @@ impl Interpreter {
     ) -> Result<Value>
     {
         let tool = Tool::dispatch(tr.name.as_str())?;
-        tool.run(input, &tr.args, &self.ctx).await
+        tool.run(input, &tr.args, &self.ctx, &self.vars).await
     }
 
     fn bind_variable(&mut self, name: &String, value: Value) -> Result<()>
