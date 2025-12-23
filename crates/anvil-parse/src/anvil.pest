@@ -15,7 +15,9 @@ program     = { SOI ~ statement* ~ EOI }
 statement   = { flow ~ branch_block? ~ output_binding? ~ ";" }
 
 // Optional variable binding at the end of a statement
-output_binding = { "|>" ~ variable }
+BIND        = { "|>" }
+
+output_binding = { BIND ~ variable }
 
 // =======================
 // Flow
