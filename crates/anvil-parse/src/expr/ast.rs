@@ -27,7 +27,7 @@ pub enum Expr {
 
 #[derive(Debug, Clone, Copy)]
 pub enum BinaryOp {
-    Add, Sub, Mul, Div,
+    Add, Sub, Mul, Div, Mod,
     Eq, Ne, Gt, Lt, Ge, Le,
     And, Or,
 }

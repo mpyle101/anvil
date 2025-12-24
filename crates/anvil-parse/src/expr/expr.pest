@@ -24,7 +24,7 @@ additive    = { multiplicative ~ ( add_op ~ multiplicative )* }
 add_op      = { "+" | "-" }
 
 multiplicative = { unary ~ ( mul_op ~ unary )* }
-mul_op      = { "*" | "/" }
+mul_op      = { "*" | "/" | "%" }
 
 // Unary
 unary       = { unary_op* ~ primary }
@@ -44,7 +44,7 @@ function_call = {
 }
 
 // Column access
-column      = { "[" ~ identifier ~ "]" }
+column       = @{ "$" ~ identifier }
 
 // =======================
 // Literals

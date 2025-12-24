@@ -1,8 +1,9 @@
 use std::convert::TryFrom;
 
+use anvil_parse::eval_expression;
 use anyhow::{anyhow, Result};
 
-use crate::{Data, ToolArg, ToolArgs, Value};
+use crate::{parse_expression, Data, ToolArg, ToolArgs, Value};
 
 
 pub struct FilterTool;
@@ -19,7 +20,8 @@ impl FilterTool {
         };
 
         let args: FilterArgs = args.try_into()?;
-        let expr = df.parse_sql_expr(args.predicate.as_str())?;
+        let ast  = parse_expression(args.predicate.as_str())?;
+        let expr = eval_expression(&ast)?;
 
         let df_true  = df.clone().filter(expr.clone())?;
         let df_false = df.filter(expr.is_false())?;

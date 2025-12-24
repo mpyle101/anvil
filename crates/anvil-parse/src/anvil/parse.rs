@@ -2,14 +2,13 @@ use anyhow::{anyhow, Result};
 use pest::Parser;
 use pest::iterators::Pair;
 
-use crate::anvil;
 use crate::anvil::ast::*;
-use crate::anvil::Rule;
+use crate::anvil::{AnvilParser, Rule};
 
 
 pub fn parse_program(input: &str) -> Result<Program>
 {
-    let mut pairs = anvil::AnvilParser::parse(Rule::program, input)?;
+    let mut pairs = AnvilParser::parse(Rule::program, input)?;
     let program = pairs.next().unwrap();
 
     let mut statements = Vec::new();
@@ -40,7 +39,6 @@ fn parse_statement(pair: Pair<Rule>) -> Result<Statement>
             Rule::output_binding => {
                 variable = Some(parse_variable_binding(inner)?);
             }
-//            Rule::EOI | Rule::WHITESPACE => {}
             _ => {}
         }
     }
