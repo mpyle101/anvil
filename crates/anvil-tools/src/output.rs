@@ -4,8 +4,7 @@ use anyhow::{anyhow, Result};
 use datafusion::dataframe::DataFrameWriteOptions;
 use datafusion::logical_expr::logical_plan::dml::InsertOp;
 
-use anvil_parse::ast::ToolArg;
-use crate::{Data, ToolArgs, Value};
+use crate::{Data, ToolArg, ToolArgs, Value};
 
 
 pub struct OutputTool;

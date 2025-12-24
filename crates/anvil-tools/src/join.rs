@@ -1,8 +1,7 @@
 use anyhow::{anyhow, Result};
 use datafusion::prelude::JoinType;
 
-use anvil_parse::ast::ToolArg;
-use crate::{Data, ToolArgs, Value};
+use crate::{Data, ToolArg, ToolArgs, Value};
 
 
 pub struct JoinTool;

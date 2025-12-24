@@ -2,8 +2,7 @@ use std::collections::HashMap;
 use anyhow::{anyhow, Result};
 use datafusion::execution::context::SessionContext;
 
-use anvil_parse::ast::*;
-use anvil_tools::{Tool, Value};
+use crate::{ast::*, Tool, Value};
 
 
 #[derive(Default)]

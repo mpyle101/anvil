@@ -1,0 +1,65 @@
+// =======================
+// Expression grammar
+// =======================
+
+expression  = { assignment }
+
+assignment  = { logical_or ~ ( "=" ~ assignment )? }
+
+// OR (||)
+logical_or  = { logical_and ~ ( OR_OP ~ logical_and )* }
+OR_OP       = { "||" }
+
+// AND (&&)
+logical_and = { comparison ~ ( AND_OP ~ comparison )* }
+AND_OP      = { "&&" }
+
+// Comparisons
+comparison  = { additive ~ ( comp_op ~ additive )* }
+
+comp_op     = { "==" | "!=" | ">=" | "<=" | ">" | "<" }
+
+// Arithmetic
+additive    = { multiplicative ~ ( add_op ~ multiplicative )* }
+add_op      = { "+" | "-" }
+
+multiplicative = { unary ~ ( mul_op ~ unary )* }
+mul_op      = { "*" | "/" }
+
+// Unary
+unary       = { unary_op* ~ primary }
+unary_op    = { "-" | "!" }
+
+// Primary
+primary     = {
+                function_call
+              | column
+              | literal
+              | "(" ~ expression ~ ")"
+              }
+
+// Function call
+function_call = {
+    identifier ~ "(" ~ (expression ~ ("," ~ expression)*)? ~ ")"
+}
+
+// Column access
+column      = { "[" ~ identifier ~ "]" }
+
+// =======================
+// Literals
+// =======================
+
+literal     = { float | integer | boolean }
+
+integer     = @{ "-"? ~ ASCII_DIGIT+ }
+
+float       = @{ "-"? ~ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+ }
+
+boolean     = { "true" | "false" }
+
+// =======================
+// Identifiers
+// =======================
+
+identifier  = @{ ASCII_ALPHANUMERIC+ }
