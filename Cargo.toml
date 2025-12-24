@@ -3,7 +3,6 @@ members = [
     "crates/anvil-cli",
     "crates/anvil-parse",
     "crates/anvil-runtime",
-    "crates/anvil-tools",
 ]
 
 resolver = "2"

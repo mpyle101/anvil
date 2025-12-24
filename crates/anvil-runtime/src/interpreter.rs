@@ -2,25 +2,29 @@ use std::collections::HashMap;
 use anyhow::{anyhow, Result};
 use datafusion::execution::context::SessionContext;
 
-use crate::{ast::*, Tool, Value};
+use anvil_parse::{parse_program, anvil::ast::*};
+use crate::{Tool, Value};
+
+
+pub async fn eval_program(program: &str) -> Result<()>
+{
+    let program = parse_program(program)?;
+
+    let mut interpreter = Interpreter::default();
+    interpreter.eval(program).await?;
+
+    Ok(())
+}
 
 
 #[derive(Default)]
-pub struct Interpreter {
+struct Interpreter {
     ctx: SessionContext,
     vars: HashMap<String, Value>,
 }
 
 impl Interpreter {
-    pub fn new() -> Self
-    {
-        Self {
-            ctx: SessionContext::default(),
-            vars: HashMap::default(),
-        }
-    }
-
-    pub async fn eval(&mut self, program: Program) -> Result<()>
+    async fn eval(&mut self, program: Program) -> Result<()>
     {
         for stmt in program.statements {
             self.eval_statement(stmt).await?;
@@ -122,11 +126,7 @@ impl Interpreter {
         Ok(())
     }
 
-    async fn eval_tool(
-        &mut self,
-        tr: &ToolRef,
-        input: Value,
-    ) -> Result<Value>
+    async fn eval_tool(&mut self, tr: &ToolRef, input: Value) -> Result<Value>
     {
         let tool = Tool::dispatch(tr.name.as_str())?;
         tool.run(input, &tr.args, &self.ctx, &self.vars).await

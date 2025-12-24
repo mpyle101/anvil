@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use datafusion::execution::context::SessionContext;
 use datafusion::prelude::{CsvReadOptions, NdJsonReadOptions, ParquetReadOptions};
 
-use crate::{Data, ToolArg, ToolArgs, Value};
+use crate::tools::{Data, ToolArg, ToolArgs, Value};
 
 
 pub struct InputTool;

@@ -115,11 +115,9 @@ dependencies = [
 name = "anvil-cli"
 version = "0.1.0"
 dependencies = [
- "anvil-parse",
  "anvil-runtime",
  "anyhow",
  "clap",
- "datafusion",
  "tokio",
 ]
 
@@ -135,16 +133,6 @@ dependencies = [
 
 [[package]]
 name = "anvil-runtime"
-version = "0.1.0"
-dependencies = [
- "anvil-parse",
- "anvil-tools",
- "anyhow",
- "datafusion",
-]
-
-[[package]]
-name = "anvil-tools"
 version = "0.1.0"
 dependencies = [
  "anvil-parse",

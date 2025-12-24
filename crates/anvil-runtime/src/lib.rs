@@ -1,6 +1,7 @@
+mod expression;
 mod interpreter;
+mod tools;
 
-pub use anvil_parse::anvil::ast;
-pub use anvil_tools::{Tool, Value};
-
-pub use interpreter::Interpreter;
+pub use tools::{Tool, Value};
+pub use expression::eval_expression;
+pub use interpreter::eval_program;

@@ -3,7 +3,7 @@ use datafusion::prelude::*;
 use datafusion::functions_aggregate::expr_fn::{avg, max, min, stddev, sum};
 use datafusion::logical_expr::{Expr, Operator};
 
-use crate::expr::ast;
+use anvil_parse::expr::ast;
 
 pub fn eval_expression(expr: &ast::Expr) -> Result<Expr>
 {

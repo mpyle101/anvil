@@ -5,5 +5,4 @@ use pest_derive::Parser;
 pub struct ExprParser;
 
 pub mod ast;
-pub mod eval;
 pub mod parse;
