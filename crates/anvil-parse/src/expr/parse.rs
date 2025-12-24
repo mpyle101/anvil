@@ -118,7 +118,7 @@ where
 {
     let mut inner = pair.into_inner();
     let x = inner.next()
-        .ok_or_else(|| anyhow!("empty expression"))?;
+        .ok_or_else(|| anyhow!("empty left hand side"))?;
     let mut expr = next(x)?;
 
     while let Some(op) = inner.next() {
@@ -146,9 +146,9 @@ fn parse_unary(pair: Pair<Rule>) -> Result<Expr> {
             _ => primary = Some(p),
         }
     }
-        
+
     let x = primary
-        .ok_or_else(|| anyhow!("empty primary"))?;
+        .ok_or_else(|| anyhow!("empty unary"))?;
     let mut expr = parse_primary(x)?;
 
     for op in ops.into_iter().rev() {
@@ -171,9 +171,7 @@ fn parse_primary(pair: Pair<Rule>) -> Result<Expr>
         .ok_or_else(|| anyhow!("empty primary"))?;
 
     let expr = match inner.as_rule() {
-        Rule::column => {
-            Expr::Column(inner.as_str()[1..].to_string())
-        }
+        Rule::column => parse_column(inner)?,
         Rule::literal => parse_literal(inner)?,
         Rule::expression => parse_assignment(inner)?,
         Rule::function_call => parse_call(inner)?,
@@ -183,11 +181,28 @@ fn parse_primary(pair: Pair<Rule>) -> Result<Expr>
     Ok(expr)
 }
 
+fn parse_column(pair: Pair<Rule>) -> Result<Expr>
+{
+    let inner = pair.into_inner().next()
+        .ok_or_else(|| anyhow!("empty column name"))?;
+
+    let name = match inner.as_rule() {
+        Rule::identifier => inner.as_str().to_string(),
+        Rule::quoted_identifier => {
+            let s = inner.as_str();
+            s[1..s.len() - 1].to_string() // strip quotes
+        }
+        _ => return Err(anyhow!("invalid column name")),
+    };
+
+    Ok(Expr::Column(name))
+}
+
 fn parse_call(pair: Pair<Rule>) -> Result<Expr>
 {
     let mut inner = pair.into_inner();
     let x = inner.next()
-        .ok_or_else(|| anyhow!("empty primary"))?;
+        .ok_or_else(|| anyhow!("empty function"))?;
     let name = x.as_str().to_string();
 
     let args = inner.map(parse_expr).collect::<Result<Vec<_>, _>>()?;

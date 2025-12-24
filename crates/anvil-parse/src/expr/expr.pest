@@ -44,7 +44,9 @@ function_call = {
 }
 
 // Column access
-column       = @{ "$" ~ identifier }
+column       = { "$" ~ ( identifier | quoted_identifier ) }
+
+quoted_identifier = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 
 // =======================
 // Literals
