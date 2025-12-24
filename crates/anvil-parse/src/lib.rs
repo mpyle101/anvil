@@ -1,4 +1,4 @@
 pub mod anvil;
 pub mod expr;
-pub mod parser;
 
+pub use anvil::parse::parse_program;
