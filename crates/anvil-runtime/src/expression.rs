@@ -85,6 +85,8 @@ fn eval_function_call(name: &str, args: &[ast::Expr]) -> Result<Expr>
         "acos"   => acos(args[0].clone()),
         "asin"   => asin(args[0].clone()),
         "atan"   => atan(args[0].clone()),
+        "rand"   => random(),
+        "sqrt"   => sqrt(args[0].clone()),
         "count"  => count(args[0].clone()),
         "median" => median(make_array(args)),
         "stddev" => stddev(make_array(args)),
