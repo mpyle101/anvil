@@ -11,6 +11,7 @@ use crate::tools::*;
 
 pub enum Tool {
     Count,
+    Describe,
     Distinct,
     Filter,
     Input,
@@ -27,6 +28,7 @@ impl Tool {
     {
         let tool = match name {
             "count"     => Tool::Count,
+            "describe"  => Tool::Describe,
             "distinct"  => Tool::Distinct,
             "filter"    => Tool::Filter,
             "input"     => Tool::Input,
@@ -51,6 +53,7 @@ impl Tool {
     {
         match self {
             Tool::Count     => CountTool::run(input, args, ctx).await,
+            Tool::Describe  => DescribeTool::run(input, args).await,
             Tool::Distinct  => DistinctTool::run(input, args).await,
             Tool::Filter    => FilterTool::run(input, args).await,
             Tool::Input     => InputTool::run(input, args, ctx).await,

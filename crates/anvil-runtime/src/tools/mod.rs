@@ -1,4 +1,5 @@
 mod count;
+mod describe;
 mod distinct;
 mod filter;
 mod input;
@@ -13,6 +14,7 @@ mod tool;
 mod value;
 
 pub use count::CountTool;
+pub use describe::DescribeTool;
 pub use distinct::DistinctTool;
 pub use filter::FilterTool;
 pub use input::InputTool;
