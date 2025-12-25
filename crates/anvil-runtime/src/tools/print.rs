@@ -7,7 +7,6 @@ pub struct PrintTool;
 impl PrintTool {
     pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
     {
-        println!("ARGS: {args:?}");
         let data = match input {
             Value::Single(data) => data,
             _ => return Err(anyhow!("print tool requires single input")),
