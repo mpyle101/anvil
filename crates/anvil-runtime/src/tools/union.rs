@@ -16,5 +16,5 @@ pub async fn run(input: Value, _args: &[ToolArg]) -> Result<Value>
 
     let df = df_left.union(df_right)?;
 
-    Ok(Value::Single(Data { df, src: "union tool".into() }))
+    Ok(Value::Single(Data { df, src: "union".into() }))
 }
