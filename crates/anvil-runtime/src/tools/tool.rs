@@ -10,7 +10,7 @@ use crate::tools::{
     OutputTool,
     FilterTool,
     JoinTool,
-    ShowTool,
+    PrintTool,
     Value
 };
 
@@ -19,7 +19,7 @@ pub enum Tool {
     Output,
     Filter,
     Join,
-    Show,
+    Print,
 }
 
 impl Tool {
@@ -30,7 +30,7 @@ impl Tool {
             "output" => Tool::Output,
             "filter" => Tool::Filter,
             "join"   => Tool::Join,
-            "show"   => Tool::Show,
+            "print"  => Tool::Print,
             _ => return Err(anyhow!("Unknown tool encountered: {name}"))
         };
 
@@ -50,7 +50,7 @@ impl Tool {
             Tool::Output => OutputTool::run(input, args).await,
             Tool::Filter => FilterTool::run(input, args).await,
             Tool::Join   => JoinTool::run(input, args).await,
-            Tool::Show   => ShowTool::run(input).await,
+            Tool::Print  => PrintTool::run(input).await,
         }
     }
 }

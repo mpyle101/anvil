@@ -3,14 +3,14 @@ use anyhow::{anyhow, Result};
 use crate::Value;
 
 
-pub struct ShowTool;
+pub struct PrintTool;
 
-impl ShowTool {
+impl PrintTool {
     pub async fn run(input: Value) -> Result<Value>
     {
         let data = match input {
             Value::Single(data) => data,
-            _ => return Err(anyhow!("filter requires single input")),
+            _ => return Err(anyhow!("print tool requires single input")),
         };
 
         println!("Source: {}", data.src);

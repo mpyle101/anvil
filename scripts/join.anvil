@@ -2,4 +2,4 @@
 
 ([input: './data/left.parquet'], df)
     | [join: type='inner' left='country' right='country']
-    | [show];
+    | [print];

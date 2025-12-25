@@ -2,7 +2,7 @@ mod input;
 mod filter;
 mod join;
 mod output;
-mod show;
+mod print;
 mod tool;
 mod value;
 
@@ -10,7 +10,7 @@ pub use input::InputTool;
 pub use filter::FilterTool;
 pub use join::JoinTool;
 pub use output::OutputTool;
-pub use show::ShowTool;
+pub use print::PrintTool;
 pub use tool::{Tool, ToolArgs};
 pub use value::{Data, Value};
 

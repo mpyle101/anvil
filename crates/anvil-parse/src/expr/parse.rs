@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+
 use pest::Parser;
 use pest::iterators::Pair;
 
@@ -25,10 +26,10 @@ pub fn parse_expr(pair: Pair<Rule>) -> Result<Expr>
 fn parse_assignment(pair: Pair<Rule>) -> Result<Expr>
 {
     let mut inner = pair.into_inner();
-            
     let x = inner.next()
-        .ok_or_else(|| anyhow!("empty logical or"))?;
-    let left = parse_logical_or(x)?;
+        .ok_or_else(|| anyhow!("empty assignment"))?;
+
+    let left = parse_logical(x)?;
 
     if let Some(rhs) = inner.next() {
         match left {
@@ -43,33 +44,46 @@ fn parse_assignment(pair: Pair<Rule>) -> Result<Expr>
     }
 }
 
-fn parse_logical_or(pair: Pair<Rule>) -> Result<Expr>
+fn parse_logical(pair: Pair<Rule>) -> Result<Expr>
 {
-    fold_binary_ops(pair, parse_logical_and, |op| match op {
-        "||" => BinaryOp::Or,
-        _ => unreachable!(),
-    })
-}
+    let mut inner = pair.into_inner();
 
-fn parse_logical_and(pair: Pair<Rule>) -> Result<Expr>
-{
-    fold_binary_ops(pair, parse_comparison, |op| match op {
-        "&&" => BinaryOp::And,
-        _ => unreachable!(),
-    })
+    let x = inner.next()
+        .ok_or_else(|| anyhow!("empty logial expression"))?;
+    let mut expr = parse_comparison(x)?;
+
+    while let Some(op) = inner.next() {
+        let x = inner.next()
+            .ok_or_else(|| anyhow!("empty rhs expression"))?;
+        let rhs = parse_comparison(x)?;
+
+        let op = match op.as_str() {
+            "&&" => BinaryOp::And,
+            "||" => BinaryOp::Or,
+            _ => return Err(anyhow!("unknown logical operator {op}"))
+        };
+
+        expr = Expr::Binary {
+            left: Box::new(expr),
+            op,
+            right: Box::new(rhs),
+        };
+    }
+
+    Ok(expr)
 }
 
 fn parse_comparison(pair: Pair<Rule>) -> Result<Expr>
 {
     let mut inner = pair.into_inner();
     let x = inner.next()
-        .ok_or_else(|| anyhow!("empty additive"))?;
-    let mut expr = parse_additive(x)?;
+        .ok_or_else(|| anyhow!("empty comparison"))?;
+    let mut expr = parse_arithmetic(x)?;
 
     while let Some(op) = inner.next() {
         let x = inner.next()
             .ok_or_else(|| anyhow!("empty right hand side"))?;
-        let rhs = parse_additive(x)?;
+        let rhs = parse_arithmetic(x)?;
 
         let bin_op = match op.as_str() {
             "==" => BinaryOp::Eq,
@@ -78,7 +92,7 @@ fn parse_comparison(pair: Pair<Rule>) -> Result<Expr>
             "<"  => BinaryOp::Lt,
             ">=" => BinaryOp::Ge,
             "<=" => BinaryOp::Le,
-            _ => return Err(anyhow!("unrecognized operator {}", op.as_str()))
+            _ => return Err(anyhow!("unrecognized comparison {}", op.as_str()))
         };
 
         expr = Expr::Binary {
@@ -91,44 +105,53 @@ fn parse_comparison(pair: Pair<Rule>) -> Result<Expr>
     Ok(expr)
 }
 
-fn parse_additive(pair: Pair<Rule>) -> Result<Expr>
+fn parse_arithmetic(pair: Pair<Rule>) -> Result<Expr>
 {
-    fold_binary_ops(pair, parse_multiplicative, |op| match op {
-        "+" => BinaryOp::Add,
-        "-" => BinaryOp::Sub,
-        _ => unreachable!(),
-    })
-}
+    let mut ops = Vec::new();
+    let mut output = Vec::new();
 
-fn parse_multiplicative(pair: Pair<Rule>) -> Result<Expr> {
-    fold_binary_ops(pair, parse_unary, |op| match op {
-        "*" => BinaryOp::Mul,
-        "/" => BinaryOp::Div,
-        _ => unreachable!(),
-    })
-}
+    for p in pair.into_inner() {
+        match p.as_rule() {
+            Rule::unary => output.push(parse_unary(p)?),
+            Rule::arith_op => ops.push(p.as_str()),
+            _ => return Err(anyhow!("unrecognized math {}", p.as_str())),
+        }
+    }
 
-fn fold_binary_ops<F>(
-    pair: Pair<Rule>,
-    next: fn(Pair<Rule>) -> Result<Expr>,
-    map_op: F,
-) -> Result<Expr>
-where
-    F: Fn(&str) -> BinaryOp,
-{
-    let mut inner = pair.into_inner();
-    let x = inner.next()
-        .ok_or_else(|| anyhow!("empty left hand side"))?;
-    let mut expr = next(x)?;
+    // First pass: * and /
+    let mut i = 0;
+    while i < ops.len() {
+        if ops[i] == "*" || ops[i] == "/" {
+            let rhs = output.remove(i + 1);
+            let lhs = output.remove(i);
+            let op = if ops[i] == "*" {
+                BinaryOp::Mul
+            } else {
+                BinaryOp::Div
+            };
+            ops.remove(i);
+            output.insert(i, Expr::Binary {
+                left: Box::new(lhs),
+                op,
+                right: Box::new(rhs),
+            });
+        } else {
+            i += 1;
+        }
+    }
 
-    while let Some(op) = inner.next() {
-        let x = inner.next()
-            .ok_or_else(|| anyhow!("empty right hand side"))?;
-        let rhs = next(x)?;
+    // Second pass: + and -
+    let mut expr = output.remove(0);
+    for (op, rhs) in ops.into_iter().zip(output) {
+        let op = if op == "+" {
+            BinaryOp::Add
+        } else {
+            BinaryOp::Sub
+        };
 
         expr = Expr::Binary {
             left: Box::new(expr),
-            op: map_op(op.as_str()),
+            op,
             right: Box::new(rhs),
         };
     }
@@ -136,7 +159,8 @@ where
     Ok(expr)
 }
 
-fn parse_unary(pair: Pair<Rule>) -> Result<Expr> {
+fn parse_unary(pair: Pair<Rule>) -> Result<Expr>
+{
     let mut ops = Vec::new();
     let mut primary = None;
 
@@ -175,7 +199,7 @@ fn parse_primary(pair: Pair<Rule>) -> Result<Expr>
         Rule::literal => parse_literal(inner)?,
         Rule::expression => parse_assignment(inner)?,
         Rule::function_call => parse_call(inner)?,
-        _ => return Err(anyhow!("invalid prmary")),
+        _ => return Err(anyhow!("invalid prmary {:?}", inner)),
     };
 
     Ok(expr)

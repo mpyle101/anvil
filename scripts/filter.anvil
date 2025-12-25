@@ -1,5 +1,5 @@
 [input: './data/messy.parquet'] | [filter: '$three == true']:
-	true => [show],
+	true => [print],
 	false => df;
 
-df | [show];
+df | [print];
