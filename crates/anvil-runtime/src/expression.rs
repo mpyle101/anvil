@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use datafusion::prelude::*;
-use datafusion::functions_aggregate::expr_fn::{avg, max, min, stddev, sum};
+use datafusion::functions_aggregate::expr_fn::*;
 use datafusion::logical_expr::{Expr, Operator};
 
 use anvil_parse::expr::ast;
@@ -77,11 +77,16 @@ fn eval_function_call(name: &str, args: &[ast::Expr]) -> Result<Expr>
     let args = args.iter().map(eval_expression).collect::<Result<Vec<_>>>()?;
 
     let func = match name {
-        "abs" => abs(args[0].clone()),
-        "avg" => avg(make_array(args)),
-        "min" => min(make_array(args)),
-        "max" => max(make_array(args)),
-        "sum" => sum(make_array(args)),
+        "abs"    => abs(args[0].clone()),
+        "avg"    => avg(make_array(args)),
+        "min"    => min(make_array(args)),
+        "max"    => max(make_array(args)),
+        "sum"    => sum(make_array(args)),
+        "acos"   => acos(args[0].clone()),
+        "asin"   => asin(args[0].clone()),
+        "atan"   => atan(args[0].clone()),
+        "count"  => count(args[0].clone()),
+        "median" => median(make_array(args)),
         "stddev" => stddev(make_array(args)),
         _ => return Err(anyhow!("unknown function '{}'", name))
     };
