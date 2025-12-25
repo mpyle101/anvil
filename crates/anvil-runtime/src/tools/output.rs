@@ -10,10 +10,7 @@ use crate::tools::{Data, ToolArg, ToolArgs, Value};
 pub struct OutputTool;
 
 impl OutputTool {
-    pub async fn run(
-        input: Value,
-        args: &[ToolArg],
-    ) -> Result<Value>
+    pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
     {
         use OutputFormat::*;
 

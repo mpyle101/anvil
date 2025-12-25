@@ -7,10 +7,7 @@ use crate::tools::{Data, ToolArg, ToolArgs, Value};
 pub struct JoinTool;
 
 impl JoinTool {
-    pub async fn run(
-        input: Value,
-        args: &[ToolArg]
-    ) -> Result<Value>
+    pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
     {
         let data = match input {
             Value::Multiple(data) => data,

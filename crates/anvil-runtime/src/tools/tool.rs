@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
@@ -50,7 +52,7 @@ impl Tool {
             Tool::Output => OutputTool::run(input, args).await,
             Tool::Filter => FilterTool::run(input, args).await,
             Tool::Join   => JoinTool::run(input, args).await,
-            Tool::Print  => PrintTool::run(input).await,
+            Tool::Print  => PrintTool::run(input, args).await,
         }
     }
 }
@@ -90,11 +92,29 @@ impl ToolArgs {
         }
     }
 
+    pub fn optional_positional_integer(&self, index: usize, name: &str) -> Result<Option<i64>>
+    {
+        match self.positional.get(index) {
+            Some(Literal::Integer(n)) => Ok(Some(*n)),
+            Some(_) => Err(anyhow!("'{name}' must be a integer")),
+            None => Ok(None),
+        }
+    }
+
     pub fn optional_string(&self, key: &str) -> Result<Option<String>>
     {
         match self.keyword.get(key) {
             Some(Literal::String(s)) => Ok(Some(s.clone())),
             Some(_) => Err(anyhow!("{key} must be a string")),
+            None => Ok(None),
+        }
+    }
+
+    pub fn optional_integer(&self, key: &str) -> Result<Option<i64>>
+    {
+        match self.keyword.get(key) {
+            Some(Literal::Integer(n)) => Ok(Some(*n)),
+            Some(_) => Err(anyhow!("{key} must be an integer")),
             None => Ok(None),
         }
     }

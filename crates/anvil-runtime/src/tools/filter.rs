@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-
 use anyhow::{anyhow, Result};
 
 use crate::eval_expression;
@@ -9,10 +7,7 @@ use crate::tools::{parse_expression, Data, ToolArg, ToolArgs, Value};
 pub struct FilterTool;
 
 impl FilterTool {
-    pub async fn run(
-        input: Value,
-        args: &[ToolArg]
-    ) -> Result<Value>
+    pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
     {
         let Data { df, src } = match input {
             Value::Single(data) => data,

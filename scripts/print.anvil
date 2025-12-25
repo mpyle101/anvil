@@ -1,1 +1,1 @@
-[input:'./data/users.parquet'] | [print];
+[input:'./data/users.parquet'] | [print: 10];
