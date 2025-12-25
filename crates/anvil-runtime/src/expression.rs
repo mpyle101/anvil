@@ -9,7 +9,7 @@ pub fn eval_expression(expr: &ast::Expr) -> Result<Expr>
 {
     let expr = match expr {
         ast::Expr::Column(name) => {
-            col(name)
+            col(format!(r#""{name}""#))
         }
         ast::Expr::Literal(l) => {
             eval_literal(l)

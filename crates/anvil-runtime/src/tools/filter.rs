@@ -16,10 +16,11 @@ impl FilterTool {
 
         let args: FilterArgs = args.try_into()?;
         let ast  = parse_expression(args.predicate.as_str())?;
+        println!("AST: {ast:?}");
         let expr = eval_expression(&ast)?;
 
         let df_true  = df.clone().filter(expr.clone())?;
-        let df_false = df.filter(expr.is_false())?;
+        let df_false = df.filter(expr.is_not_true())?;
 
         Ok(Value::Multiple(vec![
             Data { df: df_true, src: src.clone() }, 
