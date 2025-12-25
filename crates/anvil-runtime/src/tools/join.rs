@@ -12,14 +12,13 @@ pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
     if data.len() != 2 {
         return Err(anyhow!("join requires two data sets: (left, right)"))
     }
-    let df_left  = data[0].df.clone();
-    let df_right = data[1].df.clone();
+    let df_lt = data[0].df.clone();
+    let df_rt = data[1].df.clone();
 
     let args: JoinArgs = args.try_into()?;
-    let cols_left  = args.left.split(',').collect::<Vec<_>>();
-    let cols_right = args.right.split(',').collect::<Vec<_>>();
-
-    let df = df_left.join(df_right, args.join_type, &cols_left, &cols_right, None)?;
+    let cols_lt = args.left.split(',').collect::<Vec<_>>();
+    let cols_rt = args.right.split(',').collect::<Vec<_>>();
+    let df = df_lt.join(df_rt, args.join_type, &cols_lt, &cols_rt, None)?;
 
     Ok(Value::Single(Data { df, src: "join".into() }))
 }
@@ -42,7 +41,7 @@ impl TryFrom<&[ToolArg]> for JoinArgs {
             anyhow!("join 'left' columns argument does not exist")
         )?;
         let right = args.optional_string("right")?.ok_or(
-            anyhow!("join 'left' columns argument does not exist")
+            anyhow!("join 'right' columns argument does not exist")
         )?;
 
         let join_type = args.optional_string("type")?;

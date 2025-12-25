@@ -1,5 +1,5 @@
-[input: './data/right.parquet'] |> df;
+[input: './data/right.parquet'] | [select: 'id:id_r,email,title] |> df;
 
-([input: './data/left.parquet'], df)
-    | [join: type='inner' left='country' right='country']
-    | [print];
+([input: './data/left.parquet'] | [select: 'id:id,first_name,last_name'], df)
+    | [join: type='inner' left='id' right='id_r']
+    | [print: 10];

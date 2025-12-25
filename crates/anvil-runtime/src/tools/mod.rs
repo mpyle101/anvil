@@ -9,6 +9,7 @@ mod limit;
 mod output;
 mod print;
 mod schema;
+mod select;
 mod union;
 mod value;
 
