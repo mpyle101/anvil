@@ -10,6 +10,7 @@ use crate::tools::{Literal, ToolArg};
 use crate::tools::*;
 
 pub enum Tool {
+    Count,
     Distinct,
     Filter,
     Input,
@@ -25,6 +26,7 @@ impl Tool {
     pub fn dispatch(name: &str) -> Result<Tool>
     {
         let tool = match name {
+            "count"     => Tool::Count,
             "distinct"  => Tool::Distinct,
             "filter"    => Tool::Filter,
             "input"     => Tool::Input,
@@ -48,6 +50,7 @@ impl Tool {
     ) -> anyhow::Result<Value>
     {
         match self {
+            Tool::Count     => CountTool::run(input, args, ctx).await,
             Tool::Distinct  => DistinctTool::run(input, args).await,
             Tool::Filter    => FilterTool::run(input, args).await,
             Tool::Input     => InputTool::run(input, args, ctx).await,
@@ -102,6 +105,15 @@ impl ToolArgs {
             Some(Literal::Integer(n)) => Ok(*n),
             Some(_) => Err(anyhow!("'{name}' must be a integer")),
             None => Err(anyhow!("missing required positional argument '{name}'")),
+        }
+    }
+
+    pub fn optional_positional_string(&self, index: usize, name: &str) -> Result<Option<String>>
+    {
+        match self.positional.get(index) {
+            Some(Literal::String(s)) => Ok(Some(s.clone())),
+            Some(_) => Err(anyhow!("'{name}' must be a string")),
+            None => Ok(None),
         }
     }
 

@@ -1,3 +1,4 @@
+mod count;
 mod distinct;
 mod filter;
 mod input;
@@ -11,6 +12,7 @@ mod union;
 mod tool;
 mod value;
 
+pub use count::CountTool;
 pub use distinct::DistinctTool;
 pub use filter::FilterTool;
 pub use input::InputTool;

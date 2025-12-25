@@ -1,0 +1,2 @@
+[input: './data/messy.parquet'] | [count] | [print];
+[input: './data/jester.parquet'] | [count: "rows"] | [print];
