@@ -11,6 +11,7 @@ mod output;
 mod print;
 mod schema;
 mod select;
+mod sort;
 mod union;
 mod value;
 

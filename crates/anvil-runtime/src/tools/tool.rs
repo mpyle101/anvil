@@ -28,6 +28,7 @@ pub async fn run(
         "print"     => print::run(input, args).await,
         "schema"    => schema::run(input, args).await,
         "select"    => select::run(input, args).await,
+        "sort"      => sort::run(input, args).await,
         "union"     => union::run(input, args).await,
         _ => Err(anyhow!("Unknown tool encountered: {name}"))
     }

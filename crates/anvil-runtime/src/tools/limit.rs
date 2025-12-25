@@ -10,14 +10,14 @@ pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
     };
 
     let args: LimitArgs = args.try_into()?;
-    let df = df.limit(args.limit, args.count)?;
+    let df = df.limit(args.skip, Some(args.count))?;
 
     Ok(Value::Single(Data { df, src }))
 }
 
 struct LimitArgs {
-    limit: usize,
-    count: Option<usize>,
+    count: usize,
+    skip: usize,
 }
 
 impl TryFrom<&[ToolArg]> for LimitArgs {
@@ -28,9 +28,9 @@ impl TryFrom<&[ToolArg]> for LimitArgs {
         let args = ToolArgs::new(args)?;
         args.check_named_args(&["count"])?;
 
-        let limit = args.require_positional_integer(0, "path")? as usize;
-        let count = args.optional_integer("count")?.map(|n| n as usize);
+        let count = args.require_positional_integer(0, "count")? as usize;
+        let skip  = args.optional_integer("skip")?.unwrap_or(0) as usize;
 
-        Ok(LimitArgs { limit, count })
+        Ok(LimitArgs { count, skip })
     }
 }
