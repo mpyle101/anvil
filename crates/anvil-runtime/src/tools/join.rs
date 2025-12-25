@@ -11,7 +11,7 @@ impl JoinTool {
     {
         let data = match input {
             Value::Multiple(data) => data,
-            _ => return Err(anyhow!("join requires single input")),
+            _ => return Err(anyhow!("join requires multiple inputs")),
         };
         if data.len() != 2 {
             return Err(anyhow!("join requires two data sets: (left, right)"))

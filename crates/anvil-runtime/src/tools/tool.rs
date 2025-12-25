@@ -7,32 +7,32 @@ use datafusion::execution::context::SessionContext;
 
 use crate::tools::{Literal, ToolArg};
 
-use crate::tools::{
-    InputTool,
-    OutputTool,
-    FilterTool,
-    JoinTool,
-    PrintTool,
-    Value
-};
+use crate::tools::*;
 
 pub enum Tool {
-    Input,
-    Output,
+    Distinct,
     Filter,
+    Input,
+    Intersect,
     Join,
+    Limit,
+    Output,
     Print,
+    Union,
 }
 
 impl Tool {
     pub fn dispatch(name: &str) -> Result<Tool>
     {
         let tool = match name {
-            "input"  => Tool::Input,
-            "output" => Tool::Output,
-            "filter" => Tool::Filter,
-            "join"   => Tool::Join,
-            "print"  => Tool::Print,
+            "distinct"  => Tool::Distinct,
+            "filter"    => Tool::Filter,
+            "input"     => Tool::Input,
+            "intersect" => Tool::Intersect,
+            "join"      => Tool::Join,
+            "limit"     => Tool::Limit,
+            "output"    => Tool::Output,
+            "print"     => Tool::Print,
             _ => return Err(anyhow!("Unknown tool encountered: {name}"))
         };
 
@@ -48,11 +48,15 @@ impl Tool {
     ) -> anyhow::Result<Value>
     {
         match self {
-            Tool::Input  => InputTool::run(input, args, ctx).await,
-            Tool::Output => OutputTool::run(input, args).await,
-            Tool::Filter => FilterTool::run(input, args).await,
-            Tool::Join   => JoinTool::run(input, args).await,
-            Tool::Print  => PrintTool::run(input, args).await,
+            Tool::Distinct  => DistinctTool::run(input, args).await,
+            Tool::Filter    => FilterTool::run(input, args).await,
+            Tool::Input     => InputTool::run(input, args, ctx).await,
+            Tool::Intersect => IntersectTool::run(input, args).await,
+            Tool::Join      => JoinTool::run(input, args).await,
+            Tool::Limit     => LimitTool::run(input, args).await,
+            Tool::Output    => OutputTool::run(input, args).await,
+            Tool::Print     => PrintTool::run(input, args).await,
+            Tool::Union     => UnionTool::run(input, args).await,
         }
     }
 }
@@ -88,6 +92,15 @@ impl ToolArgs {
         match self.positional.get(index) {
             Some(Literal::String(s)) => Ok(s.clone()),
             Some(_) => Err(anyhow!("'{name}' must be a string")),
+            None => Err(anyhow!("missing required positional argument '{name}'")),
+        }
+    }
+
+    pub fn require_positional_integer(&self, index: usize, name: &str) -> Result<i64>
+    {
+        match self.positional.get(index) {
+            Some(Literal::Integer(n)) => Ok(*n),
+            Some(_) => Err(anyhow!("'{name}' must be a integer")),
             None => Err(anyhow!("missing required positional argument '{name}'")),
         }
     }
