@@ -1,5 +1,6 @@
 mod count;
 mod describe;
+mod drop;
 mod distinct;
 mod filter;
 mod input;

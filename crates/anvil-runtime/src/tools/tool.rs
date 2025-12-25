@@ -18,6 +18,7 @@ pub async fn run(
         "count"     => count::run(input, args, ctx).await,
         "describe"  => describe::run(input, args).await,
         "distinct"  => distinct::run(input, args).await,
+        "drop"      => drop::run(input, args).await,
         "filter"    => filter::run(input, args).await,
         "input"     => input::run(input, args, ctx).await,
         "intersect" => intersect::run(input, args).await,
