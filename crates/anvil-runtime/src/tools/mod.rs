@@ -2,6 +2,7 @@ mod count;
 mod describe;
 mod drop;
 mod distinct;
+mod fill;
 mod filter;
 mod input;
 mod intersect;
