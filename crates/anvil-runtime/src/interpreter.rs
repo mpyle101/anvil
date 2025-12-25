@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 use datafusion::execution::context::SessionContext;
 
 use anvil_parse::{parse_program, anvil::ast::*};
-use crate::{Tool, Value};
+use crate::{tools::tool, Value};
 
 
 pub async fn eval_program(program: &str) -> Result<()>
@@ -128,8 +128,7 @@ impl Interpreter {
 
     async fn eval_tool(&mut self, tr: &ToolRef, input: Value) -> Result<Value>
     {
-        let tool = Tool::dispatch(tr.name.as_str())?;
-        tool.run(input, &tr.args, &self.ctx, &self.vars).await
+        tool::run(tr.name.as_str(), input, &tr.args, &self.ctx).await
     }
 
     fn bind_variable(&mut self, name: &String, value: Value) -> Result<()>

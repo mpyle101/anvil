@@ -6,37 +6,32 @@ use datafusion::logical_expr::logical_plan::dml::InsertOp;
 
 use crate::tools::{Data, ToolArg, ToolArgs, Value};
 
+pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
+{
+    use OutputFormat::*;
 
-pub struct OutputTool;
+    let df = match input {
+        Value::Single(Data {df, ..}) => df,
+        Value::None => {
+            return Err(anyhow!("previous tool does not produce output"))
+        }
+        Value::Multiple(_) => {
+            return Err(anyhow!("output does not accept multiple values"))
+        }
+    };
 
-impl OutputTool {
-    pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
-    {
-        use OutputFormat::*;
+    let args: OutputArgs = args.try_into()?;
+    let options = DataFrameWriteOptions::new()
+        .with_insert_operation(args.mode)
+        .with_single_file_output(args.single);
 
-        let df = match input {
-            Value::Single(Data {df, ..}) => df,
-            Value::None => {
-                return Err(anyhow!("previous tool does not produce output"))
-            }
-            Value::Multiple(_) => {
-                return Err(anyhow!("output does not accept multiple values"))
-            }
-        };
+    match args.format {
+        csv     => df.write_csv(&args.path, options, None).await?,
+        json    => df.write_json(&args.path, options, None).await?,
+        parquet => df.write_parquet(&args.path, options, None).await?,
+    };
 
-        let args: OutputArgs = args.try_into()?;
-        let options = DataFrameWriteOptions::new()
-            .with_insert_operation(args.mode)
-            .with_single_file_output(args.single);
-
-        match args.format {
-            csv     => df.write_csv(&args.path, options, None).await?,
-            json    => df.write_json(&args.path, options, None).await?,
-            parquet => df.write_parquet(&args.path, options, None).await?,
-        };
-
-        Ok(Value::None)
-    }
+    Ok(Value::None)
 }
 
 

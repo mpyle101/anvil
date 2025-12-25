@@ -2,26 +2,22 @@ use anyhow::{anyhow, Result};
 
 use crate::tools::{ToolArg, ToolArgs, Value};
 
-pub struct PrintTool;
+pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
+{
+    let data = match input {
+        Value::Single(data) => data,
+        _ => return Err(anyhow!("print tool requires single input")),
+    };
 
-impl PrintTool {
-    pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
-    {
-        let data = match input {
-            Value::Single(data) => data,
-            _ => return Err(anyhow!("print tool requires single input")),
-        };
-
-        println!("Source: {}", data.src);
-        let args: PrintArgs = args.try_into()?;
-        if let Some(limit) = args.limit {
-            data.df.clone().show_limit(limit as usize).await?;
-        } else {
-            data.df.clone().show().await?;
-        }
-
-        Ok(Value::Single(data))
+    println!("Source: {}", data.src);
+    let args: PrintArgs = args.try_into()?;
+    if let Some(limit) = args.limit {
+        data.df.clone().show_limit(limit as usize).await?;
+    } else {
+        data.df.clone().show().await?;
     }
+
+    Ok(Value::Single(data))
 }
 
 struct PrintArgs {

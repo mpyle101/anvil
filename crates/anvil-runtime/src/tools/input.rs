@@ -6,34 +6,29 @@ use datafusion::prelude::{CsvReadOptions, NdJsonReadOptions, ParquetReadOptions}
 
 use crate::tools::{Data, ToolArg, ToolArgs, Value};
 
+pub async fn run(
+    input: Value,
+    args: &[ToolArg],
+    ctx: &SessionContext,
+) -> Result<Value>
+{
+    use InputFormat::*;
 
-pub struct InputTool;
+    match input {
+        Value::Single(_) | Value::Multiple(_) => {
+            return Err(anyhow!("input tool does not take input"));
+        }
+        Value::None => ()
+    };
 
-impl InputTool {
-    pub async fn run(
-        input: Value,
-        args: &[ToolArg],
-        ctx: &SessionContext,
-    ) -> Result<Value>
-    {
-        use InputFormat::*;
+    let args: InputArgs = args.try_into()?;
+    let df = match args.format {
+        csv     => ctx.read_csv(&args.path, CsvReadOptions::default()).await?,
+        json    => ctx.read_json(&args.path, NdJsonReadOptions::default()).await?,
+        parquet => ctx.read_parquet(&args.path, ParquetReadOptions::default()).await?,
+    };
 
-        match input {
-            Value::Single(_) | Value::Multiple(_) => {
-                return Err(anyhow!("input tool does not take input"));
-            }
-            Value::None => ()
-        };
-
-        let args: InputArgs = args.try_into()?;
-        let df = match args.format {
-            csv     => ctx.read_csv(&args.path, CsvReadOptions::default()).await?,
-            json    => ctx.read_json(&args.path, NdJsonReadOptions::default()).await?,
-            parquet => ctx.read_parquet(&args.path, ParquetReadOptions::default()).await?,
-        };
-
-        Ok(Value::Single(Data { df, src: args.path }))
-    }
+    Ok(Value::Single(Data { df, src: args.path }))
 }
 
 #[allow(non_camel_case_types)]

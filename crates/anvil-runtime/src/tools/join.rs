@@ -3,30 +3,25 @@ use datafusion::prelude::JoinType;
 
 use crate::tools::{Data, ToolArg, ToolArgs, Value};
 
-
-pub struct JoinTool;
-
-impl JoinTool {
-    pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
-    {
-        let data = match input {
-            Value::Multiple(data) => data,
-            _ => return Err(anyhow!("join requires multiple inputs")),
-        };
-        if data.len() != 2 {
-            return Err(anyhow!("join requires two data sets: (left, right)"))
-        }
-        let df_left  = data[0].df.clone();
-        let df_right = data[1].df.clone();
-
-        let args: JoinArgs = args.try_into()?;
-        let cols_left  = args.left.split(',').collect::<Vec<_>>();
-        let cols_right = args.right.split(',').collect::<Vec<_>>();
-
-        let df = df_left.join(df_right, args.join_type, &cols_left, &cols_right, None)?;
-
-        Ok(Value::Single(Data { df, src: "join tool".into() }))
+pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
+{
+    let data = match input {
+        Value::Multiple(data) => data,
+        _ => return Err(anyhow!("join requires multiple inputs")),
+    };
+    if data.len() != 2 {
+        return Err(anyhow!("join requires two data sets: (left, right)"))
     }
+    let df_left  = data[0].df.clone();
+    let df_right = data[1].df.clone();
+
+    let args: JoinArgs = args.try_into()?;
+    let cols_left  = args.left.split(',').collect::<Vec<_>>();
+    let cols_right = args.right.split(',').collect::<Vec<_>>();
+
+    let df = df_left.join(df_right, args.join_type, &cols_left, &cols_right, None)?;
+
+    Ok(Value::Single(Data { df, src: "join".into() }))
 }
 
 struct JoinArgs {

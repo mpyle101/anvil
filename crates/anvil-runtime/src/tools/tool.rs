@@ -5,65 +5,29 @@ use std::collections::HashMap;
 use anyhow::{anyhow, Result};
 use datafusion::execution::context::SessionContext;
 
-use crate::tools::{Literal, ToolArg};
-
 use crate::tools::*;
 
-pub enum Tool {
-    Count,
-    Describe,
-    Distinct,
-    Filter,
-    Input,
-    Intersect,
-    Join,
-    Limit,
-    Output,
-    Print,
-    Union,
-}
-
-impl Tool {
-    pub fn dispatch(name: &str) -> Result<Tool>
-    {
-        let tool = match name {
-            "count"     => Tool::Count,
-            "describe"  => Tool::Describe,
-            "distinct"  => Tool::Distinct,
-            "filter"    => Tool::Filter,
-            "input"     => Tool::Input,
-            "intersect" => Tool::Intersect,
-            "join"      => Tool::Join,
-            "limit"     => Tool::Limit,
-            "output"    => Tool::Output,
-            "print"     => Tool::Print,
-            _ => return Err(anyhow!("Unknown tool encountered: {name}"))
-        };
-
-        Ok(tool)
-    }
-
-    pub async fn run(
-        &self,
-        input: Value,
-        args: &[ToolArg],
-        ctx: &SessionContext,
-        _vars: &HashMap<String, Value>
-    ) -> anyhow::Result<Value>
-    {
-        match self {
-            Tool::Count     => CountTool::run(input, args, ctx).await,
-            Tool::Describe  => DescribeTool::run(input, args).await,
-            Tool::Distinct  => DistinctTool::run(input, args).await,
-            Tool::Filter    => FilterTool::run(input, args).await,
-            Tool::Input     => InputTool::run(input, args, ctx).await,
-            Tool::Intersect => IntersectTool::run(input, args).await,
-            Tool::Join      => JoinTool::run(input, args).await,
-            Tool::Limit     => LimitTool::run(input, args).await,
-            Tool::Output    => OutputTool::run(input, args).await,
-            Tool::Print     => PrintTool::run(input, args).await,
-            Tool::Union     => UnionTool::run(input, args).await,
-        }
+pub async fn run(
+    name: &str,
+    input: Value,
+    args: &[ToolArg],
+    ctx: &SessionContext,
+) -> anyhow::Result<Value>
+{
+    match name {
+        "count"     => count::run(input, args, ctx).await,
+        "describe"  => describe::run(input, args).await,
+        "distinct"  => distinct::run(input, args).await,
+        "filter"    => filter::run(input, args).await,
+        "input"     => input::run(input, args, ctx).await,
+        "intersect" => intersect::run(input, args).await,
+        "join"      => join::run(input, args).await,
+        "limit"     => limit::run(input, args).await,
+        "output"    => output::run(input, args).await,
+        "print"     => print::run(input, args).await,
+        "schema"    => schema::run(input, args).await,
+        "union"     => union::run(input, args).await,
+        _ => Err(anyhow!("Unknown tool encountered: {name}"))
     }
 }
 

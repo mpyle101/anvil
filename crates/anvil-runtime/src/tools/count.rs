@@ -4,23 +4,19 @@ use datafusion::execution::context::SessionContext;
 
 use crate::tools::{Data, ToolArg, ToolArgs, Value};
 
-pub struct CountTool;
+pub async fn run(input: Value, args: &[ToolArg], ctx: &SessionContext) -> Result<Value>
+{
+    let Data { df, .. } = match input {
+        Value::Single(data) => data,
+        _ => return Err(anyhow!("count tool requires single input")),
+    };
 
-impl CountTool {
-    pub async fn run(input: Value, args: &[ToolArg], ctx: &SessionContext) -> Result<Value>
-    {
-        let Data { df, .. } = match input {
-            Value::Single(data) => data,
-            _ => return Err(anyhow!("count tool requires single input")),
-        };
+    let args: CountArgs = args.try_into()?;
+    let n = df.clone().count().await? as i64;
+    let df = ctx.read_empty()?
+        .with_column(&args.col, lit(n))?;
 
-        let args: CountArgs = args.try_into()?;
-        let n = df.clone().count().await? as i64;
-        let df = ctx.read_empty()?
-            .with_column(&args.col, lit(n))?;
-
-        Ok(Value::Single(Data { df, src: "count".into() }))
-    }
+    Ok(Value::Single(Data { df, src: "count".into() }))
 }
 
 struct CountArgs {

@@ -3,29 +3,24 @@ use anyhow::{anyhow, Result};
 use crate::eval_expression;
 use crate::tools::{parse_expression, Data, ToolArg, ToolArgs, Value};
 
+pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
+{
+    let Data { df, src } = match input {
+        Value::Single(data) => data,
+        _ => return Err(anyhow!("filter requires single input")),
+    };
 
-pub struct FilterTool;
+    let args: FilterArgs = args.try_into()?;
+    let ast  = parse_expression(args.predicate.as_str())?;
+    let expr = eval_expression(&ast)?;
 
-impl FilterTool {
-    pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
-    {
-        let Data { df, src } = match input {
-            Value::Single(data) => data,
-            _ => return Err(anyhow!("filter requires single input")),
-        };
+    let df_true  = df.clone().filter(expr.clone())?;
+    let df_false = df.filter(expr.is_not_true())?;
 
-        let args: FilterArgs = args.try_into()?;
-        let ast  = parse_expression(args.predicate.as_str())?;
-        let expr = eval_expression(&ast)?;
-
-        let df_true  = df.clone().filter(expr.clone())?;
-        let df_false = df.filter(expr.is_not_true())?;
-
-        Ok(Value::Multiple(vec![
-            Data { df: df_true, src: src.clone() }, 
-            Data { df: df_false, src },
-        ]))
-    }
+    Ok(Value::Multiple(vec![
+        Data { df: df_true, src: src.clone() }, 
+        Data { df: df_false, src },
+    ]))
 }
 
 struct FilterArgs {

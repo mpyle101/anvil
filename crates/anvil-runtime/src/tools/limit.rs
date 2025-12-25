@@ -2,22 +2,17 @@ use anyhow::{anyhow, Result};
 
 use crate::tools::{Data, ToolArg, ToolArgs, Value};
 
+pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
+{
+    let Data { df, src } = match input {
+        Value::Single(data) => data,
+        _ => return Err(anyhow!("limit requires single input")),
+    };
 
-pub struct LimitTool;
+    let args: LimitArgs = args.try_into()?;
+    let df = df.limit(args.limit, args.count)?;
 
-impl LimitTool {
-    pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
-    {
-        let Data { df, src } = match input {
-            Value::Single(data) => data,
-            _ => return Err(anyhow!("limit requires single input")),
-        };
-
-        let args: LimitArgs = args.try_into()?;
-        let df = df.limit(args.limit, args.count)?;
-
-        Ok(Value::Single(Data { df, src }))
-    }
+    Ok(Value::Single(Data { df, src }))
 }
 
 struct LimitArgs {
