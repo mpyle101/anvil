@@ -1,0 +1,4 @@
+[input:'./data/jester.parquet']
+    | [limit: 15]
+    | [project: TOT_DELAY="$DEP_DELAY + $ARR_DELAY" DEP_DELAY="$DEP_DELAY" ARR_DELAY="$ARR_DELAY"]
+    | [print];

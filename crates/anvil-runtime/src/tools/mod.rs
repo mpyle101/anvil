@@ -10,6 +10,7 @@ mod join;
 mod limit;
 mod output;
 mod print;
+mod project;
 mod schema;
 mod select;
 mod sort;

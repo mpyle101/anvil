@@ -83,3 +83,16 @@ pub enum Literal {
     Integer(i64),
     String(String),
 }
+
+impl std::fmt::Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result
+    {
+        use Literal::*;
+
+        match self {
+            Boolean(v) => write!(f, "{v}"),
+            Integer(v) => write!(f, "{v}"),
+            String(v)  => write!(f, "{v}"),
+        }
+    }
+}

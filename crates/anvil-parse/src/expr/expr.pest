@@ -59,4 +59,4 @@ boolean = { "true" | "false" }
 // Identifiers
 // =======================
 
-identifier = @{ ASCII_ALPHANUMERIC+ }
+identifier = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
