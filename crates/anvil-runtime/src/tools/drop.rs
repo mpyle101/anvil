@@ -1,15 +1,15 @@
 use anyhow::{anyhow, Result};
 
-use crate::tools::{Data, ToolArg, ToolArgs, Value};
+use crate::tools::{Data, ToolArg, ToolArgs, ToolRef, Value};
 
-pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
+pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
 {
     let Data { df, src } = match input {
         Value::Single(data) => data,
         _ => return Err(anyhow!("drop requires single input")),
     };
 
-    let args: DropArgs = args.try_into()?;
+    let args: DropArgs = tr.args.as_slice().try_into()?;
     let cols = args.cols.split(',').collect::<Vec<_>>();
     let df = df.drop_columns(&cols)?;
 

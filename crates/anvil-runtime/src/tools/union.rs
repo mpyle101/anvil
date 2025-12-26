@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
 
-use crate::tools::{Data, ToolArg, Value};
+use crate::tools::{Data, ToolRef, Value};
 
-pub async fn run(input: Value, _args: &[ToolArg]) -> Result<Value>
+pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
 {
     let data = match input {
         Value::Multiple(data) => data,
@@ -16,5 +16,5 @@ pub async fn run(input: Value, _args: &[ToolArg]) -> Result<Value>
 
     let df = df_left.union(df_right)?;
 
-    Ok(Value::Single(Data { df, src: "union".into() }))
+    Ok(Value::Single(Data { df, src: format!("union ({})", tr.id) }))
 }

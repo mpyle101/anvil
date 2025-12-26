@@ -4,9 +4,9 @@ use anyhow::{anyhow, Result};
 use datafusion::prelude::*;
 use datafusion::common::arrow::array::{BooleanArray, UInt64Array, StringArray};
 
-use crate::tools::{Data, ToolArg, Value};
+use crate::tools::{Data, ToolRef, Value};
 
-pub async fn run(input: Value, _args: &[ToolArg]) -> Result<Value>
+pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
 {
     let Data { df, .. } = match input {
         Value::Single(data) => data,
@@ -32,5 +32,5 @@ pub async fn run(input: Value, _args: &[ToolArg]) -> Result<Value>
         ("nullable", Arc::new(BooleanArray::from(nulls))),
     ])?;
 
-    Ok(Value::Single(Data { df, src: "schema".into() }))
+    Ok(Value::Single(Data { df, src: format!("schema ({})", tr.id) }))
 }

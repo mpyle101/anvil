@@ -128,7 +128,7 @@ impl Interpreter {
 
     async fn eval_tool(&mut self, tr: &ToolRef, input: Value) -> Result<Value>
     {
-        tool::run(tr.name.as_str(), input, &tr.args, &self.ctx).await
+        tool::run(tr, input, &self.ctx).await
     }
 
     fn bind_variable(&mut self, name: &String, value: Value) -> Result<()>

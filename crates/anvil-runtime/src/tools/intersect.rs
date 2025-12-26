@@ -1,12 +1,12 @@
 use anyhow::{anyhow, Result};
 
-use crate::tools::{Data, ToolArg, Value};
+use crate::tools::{Data, ToolRef, Value};
 
-pub async fn run(input: Value, _args: &[ToolArg]) -> Result<Value>
+pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
 {
     let data = match input {
         Value::Multiple(data) => data,
-        _ => return Err(anyhow!("intersect requires multiple input")),
+        _ => return Err(anyhow!("intersect requires multiple inputs")),
     };
     if data.len() != 2 {
         return Err(anyhow!("intersect requires two data sets: (left, right)"))
@@ -16,5 +16,5 @@ pub async fn run(input: Value, _args: &[ToolArg]) -> Result<Value>
 
     let df = df_left.intersect(df_right)?;
 
-    Ok(Value::Single(Data { df, src: "intersect".into() }))
+    Ok(Value::Single(Data { df, src: format!("intersect ({})", tr.id) }))
 }

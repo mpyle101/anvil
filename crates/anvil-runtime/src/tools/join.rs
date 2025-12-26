@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Result};
 use datafusion::prelude::JoinType;
 
-use crate::tools::{Data, ToolArg, ToolArgs, Value};
+use crate::tools::{Data, ToolArg, ToolArgs, ToolRef, Value};
 
-pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
+pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
 {
     let data = match input {
         Value::Multiple(data) => data,
@@ -15,12 +15,12 @@ pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
     let df_lt = data[0].df.clone();
     let df_rt = data[1].df.clone();
 
-    let args: JoinArgs = args.try_into()?;
+    let args: JoinArgs = tr.args.as_slice().try_into()?;
     let cols_lt = args.left.split(',').collect::<Vec<_>>();
     let cols_rt = args.right.split(',').collect::<Vec<_>>();
     let df = df_lt.join(df_rt, args.join_type, &cols_lt, &cols_rt, None)?;
 
-    Ok(Value::Single(Data { df, src: "join".into() }))
+    Ok(Value::Single(Data { df, src: format!("join ({})", tr.id) }))
 }
 
 struct JoinArgs {

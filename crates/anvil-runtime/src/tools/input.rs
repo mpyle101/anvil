@@ -4,13 +4,9 @@ use anyhow::{anyhow, Result};
 use datafusion::execution::context::SessionContext;
 use datafusion::prelude::{CsvReadOptions, NdJsonReadOptions, ParquetReadOptions};
 
-use crate::tools::{Data, ToolArg, ToolArgs, Value};
+use crate::tools::{Data, ToolArg, ToolArgs, ToolRef, Value};
 
-pub async fn run(
-    input: Value,
-    args: &[ToolArg],
-    ctx: &SessionContext,
-) -> Result<Value>
+pub async fn run(tr: &ToolRef, input: Value, ctx: &SessionContext) -> Result<Value>
 {
     use InputFormat::*;
 
@@ -21,7 +17,7 @@ pub async fn run(
         Value::None => ()
     };
 
-    let args: InputArgs = args.try_into()?;
+    let args: InputArgs = tr.args.as_slice().try_into()?;
     let df = match args.format {
         csv     => ctx.read_csv(&args.path, CsvReadOptions::default()).await?,
         json    => ctx.read_json(&args.path, NdJsonReadOptions::default()).await?,

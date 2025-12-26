@@ -54,8 +54,19 @@ pub enum BranchTarget {
     Variable(String),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ToolId(pub usize);
+
+impl std::fmt::Display for ToolId {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result
+    {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[derive(Debug)]
 pub struct ToolRef {
+    pub id: ToolId,
     pub name: String,
     pub args: Vec<ToolArg>,
 }

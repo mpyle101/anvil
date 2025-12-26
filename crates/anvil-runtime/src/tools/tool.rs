@@ -8,31 +8,32 @@ use datafusion::execution::context::SessionContext;
 use crate::tools::*;
 
 pub async fn run(
-    name: &str,
+    tr: &ToolRef,
     input: Value,
-    args: &[ToolArg],
     ctx: &SessionContext,
 ) -> anyhow::Result<Value>
 {
+    let name = tr.name.as_str();
+
     match name {
-        "count"     => count::run(input, args, ctx).await,
-        "describe"  => describe::run(input, args).await,
-        "distinct"  => distinct::run(input, args).await,
-        "drop"      => drop::run(input, args).await,
-        "fill"      => fill::run(input, args).await,
-        "filter"    => filter::run(input, args).await,
-        "input"     => input::run(input, args, ctx).await,
-        "intersect" => intersect::run(input, args).await,
-        "join"      => join::run(input, args).await,
-        "limit"     => limit::run(input, args).await,
-        "output"    => output::run(input, args).await,
-        "print"     => print::run(input, args).await,
-        "project"   => project::run(input, args).await,
-        "schema"    => schema::run(input, args).await,
-        "select"    => select::run(input, args).await,
-        "sort"      => sort::run(input, args).await,
-        "union"     => union::run(input, args).await,
-        _ => Err(anyhow!("Unknown tool encountered: {name}"))
+        "count"     => count::run(tr, input, ctx).await,
+        "describe"  => describe::run(tr, input).await,
+        "distinct"  => distinct::run(tr, input).await,
+        "drop"      => drop::run(tr, input).await,
+        "fill"      => fill::run(tr, input).await,
+        "filter"    => filter::run(tr, input).await,
+        "input"     => input::run(tr, input, ctx).await,
+        "intersect" => intersect::run(tr, input).await,
+        "join"      => join::run(tr, input).await,
+        "limit"     => limit::run(tr, input).await,
+        "output"    => output::run(tr, input).await,
+        "print"     => print::run(tr, input).await,
+        "project"   => project::run(tr, input).await,
+        "schema"    => schema::run(tr, input).await,
+        "select"    => select::run(tr, input).await,
+        "sort"      => sort::run(tr, input).await,
+        "union"     => union::run(tr, input).await,
+        _ => Err(anyhow!("Unknown tool: {name}"))
     }
 }
 

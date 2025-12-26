@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
 
-use crate::tools::{Data, ToolArg, Value};
+use crate::tools::{Data, ToolRef, Value};
 
-pub async fn run(input: Value, _args: &[ToolArg]) -> Result<Value>
+pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
 {
     let Data { df, .. } = match input {
         Value::Single(data) => data,
@@ -11,5 +11,5 @@ pub async fn run(input: Value, _args: &[ToolArg]) -> Result<Value>
 
     let df = df.describe().await?;
 
-    Ok(Value::Single(Data { df, src: "describe".into() }))
+    Ok(Value::Single(Data { df, src: format!("describe ({})", tr.id) }))
 }

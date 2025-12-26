@@ -1,15 +1,15 @@
 use anyhow::{anyhow, Result};
 
-use crate::tools::{Data, ToolArg, ToolArgs, Value};
+use crate::tools::{Data, ToolArg, ToolArgs, ToolRef, Value};
 
-pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
+pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
 {
     let Data { df, src } = match input {
         Value::Single(data) => data,
         _ => return Err(anyhow!("limit requires single input")),
     };
 
-    let args: LimitArgs = args.try_into()?;
+    let args: LimitArgs = tr.args.as_slice().try_into()?;
     let df = df.limit(args.skip, Some(args.count))?;
 
     Ok(Value::Single(Data { df, src }))

@@ -4,9 +4,9 @@ use anyhow::{anyhow, Result};
 use datafusion::dataframe::DataFrameWriteOptions;
 use datafusion::logical_expr::logical_plan::dml::InsertOp;
 
-use crate::tools::{Data, ToolArg, ToolArgs, Value};
+use crate::tools::{Data, ToolArg, ToolArgs, ToolRef, Value};
 
-pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
+pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
 {
     use OutputFormat::*;
 
@@ -20,7 +20,7 @@ pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
         }
     };
 
-    let args: OutputArgs = args.try_into()?;
+    let args: OutputArgs = tr.args.as_slice().try_into()?;
     let options = DataFrameWriteOptions::new()
         .with_insert_operation(args.mode)
         .with_single_file_output(args.single);

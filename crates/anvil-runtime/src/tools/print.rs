@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
 
-use crate::tools::{ToolArg, ToolArgs, Value};
+use crate::tools::{ToolArg, ToolArgs, ToolRef, Value};
 
-pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
+pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
 {
     let data = match input {
         Value::Single(data) => data,
@@ -10,7 +10,7 @@ pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
     };
 
     println!("Source: {}", data.src);
-    let args: PrintArgs = args.try_into()?;
+    let args: PrintArgs = tr.args.as_slice().try_into()?;
     if let Some(limit) = args.limit {
         data.df.clone().show_limit(limit as usize).await?;
     } else {

@@ -1,16 +1,16 @@
 use anyhow::{anyhow, Result};
 
 use crate::eval_expression;
-use crate::tools::{parse_expression, Data, ToolArg, ToolArgs, Value};
+use crate::tools::{parse_expression, Data, ToolArg, ToolArgs, ToolRef, Value};
 
-pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
+pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
 {
     let Data { df, src } = match input {
         Value::Single(data) => data,
         _ => return Err(anyhow!("filter requires single input")),
     };
 
-    let args: FilterArgs = args.try_into()?;
+    let args: FilterArgs = tr.args.as_slice().try_into()?;
     let ast  = parse_expression(args.predicate.as_str())?;
     let expr = eval_expression(&ast)?;
 

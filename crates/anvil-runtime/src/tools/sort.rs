@@ -1,16 +1,16 @@
 use anyhow::{anyhow, Result};
 use datafusion::prelude::col;
 
-use crate::tools::{Data, ToolArg, ToolArgs, Value};
+use crate::tools::{Data, ToolArg, ToolArgs, ToolRef, Value};
 
-pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
+pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
 {
     let Data { df, src } = match input {
         Value::Single(data) => data,
         _ => return Err(anyhow!("sort requires single input")),
     };
 
-    let args: SortArgs = args.try_into()?;
+    let args: SortArgs = tr.args.as_slice().try_into()?;
     let expr = args.cols.split(',')
         .map(|s| {
             let parts = s.splitn(3, ':').collect::<Vec<_>>();

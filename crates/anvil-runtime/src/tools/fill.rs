@@ -1,16 +1,16 @@
 use anyhow::{anyhow, Result};
 use datafusion::scalar::ScalarValue;
 
-use crate::tools::{Data, ToolArg, ToolArgs, Value};
+use crate::tools::{Data, ToolArg, ToolArgs, ToolRef, Value};
 
-pub async fn run(input: Value, args: &[ToolArg]) -> Result<Value>
+pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
 {
     let Data { df, src } = match input {
         Value::Single(data) => data,
         _ => return Err(anyhow!("drop requires single input")),
     };
 
-    let args: FillArgs = args.try_into()?;
+    let args: FillArgs = tr.args.as_slice().try_into()?;
     let cols = args.cols.unwrap_or("".into())
         .split(',')
         .map(|s| s.to_owned())

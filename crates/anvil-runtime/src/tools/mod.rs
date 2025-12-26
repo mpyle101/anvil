@@ -22,5 +22,5 @@ pub mod tool;
 pub use tool::ToolArgs;
 pub use value::{Data, Value};
 
-pub use anvil_parse::anvil::ast::{Literal, ToolArg};
+pub use anvil_parse::anvil::ast::{Literal, ToolArg, ToolRef};
 pub use anvil_parse::parse_expression;
