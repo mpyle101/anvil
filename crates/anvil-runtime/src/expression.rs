@@ -1,9 +1,20 @@
+use std::collections::HashMap;
+use std::sync::{Arc, LazyLock};
+
 use anyhow::{anyhow, Result};
 use datafusion::prelude::*;
-use datafusion::functions_aggregate::expr_fn::*;
-use datafusion::logical_expr::{Expr, Operator};
+use datafusion::logical_expr::{Expr, Operator, ScalarUDF};
 
 use anvil_parse::expr::ast;
+
+type Funcs = HashMap<String, Arc<ScalarUDF>>;
+
+static FUNCTIONS: LazyLock<Funcs> = LazyLock::new(|| {
+    datafusion::functions::all_default_functions()
+        .iter()
+        .map(|f| (f.name().to_string(), f.clone()))
+        .collect::<Funcs>()
+});
 
 pub fn eval_expression(expr: &ast::Expr) -> Result<Expr>
 {
@@ -74,24 +85,12 @@ fn eval_binary_op(op: ast::BinaryOp) -> Operator
 
 fn eval_function_call(name: &str, args: &[ast::Expr]) -> Result<Expr>
 {
-    let args = args.iter().map(eval_expression).collect::<Result<Vec<_>>>()?;
+    let args = args.iter()
+        .map(eval_expression)
+        .collect::<Result<Vec<_>>>()?;
 
-    let func = match name {
-        "abs"    => abs(args[0].clone()),
-        "avg"    => avg(make_array(args)),
-        "min"    => min(make_array(args)),
-        "max"    => max(make_array(args)),
-        "sum"    => sum(make_array(args)),
-        "acos"   => acos(args[0].clone()),
-        "asin"   => asin(args[0].clone()),
-        "atan"   => atan(args[0].clone()),
-        "rand"   => random(),
-        "sqrt"   => sqrt(args[0].clone()),
-        "count"  => count(args[0].clone()),
-        "median" => median(make_array(args)),
-        "stddev" => stddev(make_array(args)),
-        _ => return Err(anyhow!("unknown function '{}'", name))
-    };
-
-    Ok(func)
+    match FUNCTIONS.get(name) {
+        Some(func) => Ok(func.call(args)),
+        None => Err(anyhow!("unknown function '{name}'"))
+    }
 }

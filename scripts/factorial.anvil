@@ -1,0 +1,4 @@
+[input:'./data/jester.parquet']
+    | [limit: 15]
+    | [project: FACTORIAL="factorial(abs(2 * -5))"]
+    | [print];

@@ -35,7 +35,7 @@ primary =
 
 // Function calls
 function_call = {
-    identifier ~ "(" ~ (expression ~ ("," ~ expression)*)? ~ ")"
+    identifier ~ "(" ~ (logical ~ ("," ~ logical)*)? ~ ")"
 }
 
 // Column access

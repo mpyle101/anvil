@@ -112,7 +112,8 @@ fn parse_arithmetic(pair: Pair<Rule>) -> Result<Expr>
 
     for p in pair.into_inner() {
         match p.as_rule() {
-            Rule::unary => output.push(parse_unary(p)?),
+            Rule::unary    => output.push(parse_unary(p)?),
+            Rule::literal  => output.push(parse_literal(p)?),
             Rule::arith_op => ops.push(p.as_str()),
             _ => return Err(anyhow!("unrecognized math {}", p.as_str())),
         }
@@ -172,7 +173,7 @@ fn parse_unary(pair: Pair<Rule>) -> Result<Expr>
     }
 
     let x = primary
-        .ok_or_else(|| anyhow!("empty unary"))?;
+        .ok_or_else(|| anyhow!("empty primary"))?;
     let mut expr = parse_primary(x)?;
 
     for op in ops.into_iter().rev() {
@@ -229,7 +230,7 @@ fn parse_call(pair: Pair<Rule>) -> Result<Expr>
         .ok_or_else(|| anyhow!("empty function"))?;
     let name = x.as_str().to_string();
 
-    let args = inner.map(parse_expr).collect::<Result<Vec<_>, _>>()?;
+    let args = inner.map(parse_logical).collect::<Result<Vec<_>, _>>()?;
 
     Ok(Expr::Call { name, args })
 }
