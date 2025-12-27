@@ -32,6 +32,7 @@ pub async fn run(
         "schema"    => schema::run(tr, input).await,
         "select"    => select::run(tr, input).await,
         "sort"      => sort::run(tr, input).await,
+        "sql"       => sql::run(tr, input, ctx).await,
         "union"     => union::run(tr, input).await,
         _ => Err(anyhow!("Unknown tool: {name}"))
     }

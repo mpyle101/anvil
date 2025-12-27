@@ -2,7 +2,8 @@ use std::path::Path;
 
 use anyhow::{anyhow, Result};
 use datafusion::execution::context::SessionContext;
-use datafusion::prelude::{CsvReadOptions, NdJsonReadOptions, ParquetReadOptions};
+use datafusion::execution::options::ArrowReadOptions;
+use datafusion::prelude::{AvroReadOptions, CsvReadOptions, NdJsonReadOptions, ParquetReadOptions};
 
 use crate::tools::{Data, ToolArg, ToolArgs, ToolRef, Value};
 
@@ -18,11 +19,16 @@ pub async fn run(tr: &ToolRef, input: Value, ctx: &SessionContext) -> Result<Val
     };
 
     let args: InputArgs = tr.args.as_slice().try_into()?;
-    let df = match args.format {
-        csv     => ctx.read_csv(&args.path, CsvReadOptions::default()).await?,
-        json    => ctx.read_json(&args.path, NdJsonReadOptions::default()).await?,
-        parquet => ctx.read_parquet(&args.path, ParquetReadOptions::default()).await?,
+    let (path, table) = (&args.path, &args.table);
+    match args.format {
+        csv     => ctx.register_csv(table, path, CsvReadOptions::default()).await?,
+        avro    => ctx.register_avro(table, path, AvroReadOptions::default()).await?,
+        json    => ctx.register_json(table, path, NdJsonReadOptions::default()).await?,
+        arrow   => ctx.register_arrow(table, path, ArrowReadOptions::default()).await?,
+        parquet => ctx.register_parquet(table, path, ParquetReadOptions::default()).await?,
     };
+
+    let df = ctx.table(table).await?;
 
     Ok(Value::Single(Data { df, src: args.path }))
 }
@@ -30,13 +36,16 @@ pub async fn run(tr: &ToolRef, input: Value, ctx: &SessionContext) -> Result<Val
 #[allow(non_camel_case_types)]
 enum InputFormat {
     csv,
+    avro,
     json,
+    arrow,
     parquet
 }
 
 struct InputArgs {
     format: InputFormat,
     path: String,
+    table: String,
 }
 
 impl TryFrom<&[ToolArg]> for InputArgs {
@@ -45,7 +54,7 @@ impl TryFrom<&[ToolArg]> for InputArgs {
     fn try_from(args: &[ToolArg]) -> Result<Self>
     {
         let args = ToolArgs::new(args)?;
-        args.check_named_args(&["format"])?;
+        args.check_named_args(&["format", "table"])?;
 
         let path = args.require_positional_string(0, "input: path")?;
         let fpath = Path::new(&path);
@@ -58,7 +67,9 @@ impl TryFrom<&[ToolArg]> for InputArgs {
             Some(s) => {
                 match s.as_str() {
                     "csv"     => InputFormat::csv,
+                    "avro"    => InputFormat::avro,
                     "json"    => InputFormat::json,
+                    "arrow"   => InputFormat::arrow,
                     "parquet" => InputFormat::parquet,
                     _ => {
                         return Err(anyhow!("input file format unsupported {s}"))
@@ -78,6 +89,8 @@ impl TryFrom<&[ToolArg]> for InputArgs {
             }
         };
 
-        Ok(InputArgs { format, path })
+        let table = args.optional_string("table")?.unwrap_or("tbl".into());
+
+        Ok(InputArgs { format, path, table })
     }
 }

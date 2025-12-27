@@ -14,6 +14,7 @@ mod project;
 mod schema;
 mod select;
 mod sort;
+mod sql;
 mod union;
 mod value;
 

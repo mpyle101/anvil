@@ -5,6 +5,6 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.100"
-datafusion = "51.0.0"
+datafusion = { version = "51.0.0", features = ["avro", "sql"] }
 
 anvil-parse = { path = "../anvil-parse" }
