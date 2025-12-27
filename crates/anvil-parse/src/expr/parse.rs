@@ -196,9 +196,9 @@ fn parse_primary(pair: Pair<Rule>) -> Result<Expr>
         .ok_or_else(|| anyhow!("empty primary"))?;
 
     let expr = match inner.as_rule() {
-        Rule::column => parse_column(inner)?,
-        Rule::literal => parse_literal(inner)?,
-        Rule::expression => parse_assignment(inner)?,
+        Rule::column        => parse_column(inner)?,
+        Rule::literal       => parse_literal(inner)?,
+        Rule::expression    => parse_assignment(inner)?,
         Rule::function_call => parse_call(inner)?,
         _ => return Err(anyhow!("invalid prmary {:?}", inner)),
     };
