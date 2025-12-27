@@ -28,7 +28,7 @@ pub async fn run(
         "limit"     => limit::run(tr, input).await,
         "output"    => output::run(tr, input).await,
         "print"     => print::run(tr, input).await,
-        "project"   => project::run(tr, input).await,
+        "project"   => project::run(tr, input, ctx).await,
         "schema"    => schema::run(tr, input).await,
         "select"    => select::run(tr, input).await,
         "sort"      => sort::run(tr, input).await,

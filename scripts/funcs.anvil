@@ -1,8 +1,6 @@
-[input:'./data/jester.parquet']
-    | [limit: 15]
-    | [project:
-        factorial='factorial(abs(2 * -5))'
-        concat='concat("foo","bar")'
-        sqrt='sqrt(25)'
-      ]
-    | [print];
+[project:
+  factorial='factorial(abs(2 * -5))'
+  concat='concat("foo","bar")'
+  sqrt='sqrt(25)'
+]
+| [print];

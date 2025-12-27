@@ -1,13 +1,15 @@
 use anyhow::{anyhow, Result};
+use datafusion::execution::context::SessionContext;
 
 use crate::eval_expression;
 use crate::tools::{parse_expression, Data, ToolArg, ToolRef, Value};
 
-pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
+pub async fn run(tr: &ToolRef, input: Value, ctx: &SessionContext) -> Result<Value>
 {
-    let Data { df, .. } = match input {
-        Value::Single(data) => data,
-        _ => return Err(anyhow!("projection requires single input")),
+    let df = match input {
+        Value::Single(data) => data.df,
+        Value::None => ctx.read_empty()?,
+        _ => return Err(anyhow!("projection requires single or no input")),
     };
 
     let mut exprs = Vec::new();
