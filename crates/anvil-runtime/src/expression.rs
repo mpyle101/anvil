@@ -56,9 +56,10 @@ pub fn eval_expression(expr: &ast::Expr) -> Result<Expr>
 fn eval_literal(litval: &ast::Literal) -> Expr
 {
     match litval {
-        ast::Literal::Int(v)   => lit(*v),
-        ast::Literal::Float(v) => lit(*v),
-        ast::Literal::Bool(v)  => lit(*v),
+        ast::Literal::Bool(v)    => lit(*v),
+        ast::Literal::Float(v)   => lit(*v),
+        ast::Literal::Integer(v) => lit(*v),
+        ast::Literal::String(v)  => lit(v),
     }
 }
 

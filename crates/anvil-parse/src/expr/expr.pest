@@ -26,12 +26,12 @@ unary = { unary_op* ~ primary }
 unary_op = { "-" | "!" }
 
 // Primary expressions
-primary =
-    { function_call
+primary = {
+    function_call
     | column
     | literal
     | "(" ~ expression ~ ")"
-    }
+}
 
 // Function calls
 function_call = {
@@ -41,22 +41,24 @@ function_call = {
 // Column access
 column = { "$" ~ ( identifier | quoted_identifier ) }
 
-quoted_identifier = @{ "\"" ~ (!"\"" ~ ANY)+ ~ "\"" }
-
 // =======================
 // Literals
 // =======================
 
-literal = { float | integer | boolean }
+literal = { float | integer | boolean | string }
 
 integer = @{ "-"? ~ ASCII_DIGIT+ }
 
-float = @{ "-"? ~ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+ }
+float   = @{ "-"? ~ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+ }
 
 boolean = { "true" | "false" }
+
+string  = { quoted_identifier }
 
 // =======================
 // Identifiers
 // =======================
 
 identifier = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+
+quoted_identifier = @{ "\"" ~ (!"\"" ~ ANY)+ ~ "\"" }

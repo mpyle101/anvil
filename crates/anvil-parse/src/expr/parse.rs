@@ -244,7 +244,7 @@ fn parse_literal(pair: Pair<Rule>) -> Result<Expr>
         Rule::integer => {
             let x = inner.as_str().parse::<i64>()
                 .or(Err(anyhow!("failed to parse integer {}", inner.as_str())))?;
-            Expr::Literal(Literal::Int(x))
+            Expr::Literal(Literal::Integer(x))
         },
         Rule::float   => {
             let x = inner.as_str().parse::<f64>()
@@ -252,8 +252,26 @@ fn parse_literal(pair: Pair<Rule>) -> Result<Expr>
             Expr::Literal(Literal::Float(x))
         },
         Rule::boolean => Expr::Literal(Literal::Bool(inner.as_str() == "true")),
+        Rule::string  => parse_string(inner)?,
         _ => return Err(anyhow!("unknown literal {}", inner.as_str())),
     };
 
     Ok(expr)
+}
+
+fn parse_string(pair: Pair<Rule>) -> Result<Expr>
+{
+    let inner = pair.into_inner().next()
+        .ok_or_else(|| anyhow!("empty string"))?;
+
+    let s = match inner.as_rule() {
+        Rule::identifier => inner.to_string(),
+        Rule::quoted_identifier => {
+            let s = inner.as_str();
+            s[1..s.len() - 1].to_string() // strip quotes
+        }
+        _ => return Err(anyhow!("invalid string literal")),
+    };
+
+    Ok(Expr::Literal(Literal::String(s)))
 }

@@ -40,7 +40,8 @@ pub enum UnaryOp {
 
 #[derive(Debug, Clone)]
 pub enum Literal {
-    Int(i64),
-    Float(f64),
     Bool(bool),
+    Float(f64),
+    Integer(i64),
+    String(String),
 }
