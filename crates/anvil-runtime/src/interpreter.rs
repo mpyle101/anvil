@@ -6,9 +6,9 @@ use anvil_parse::{parse_program, anvil::ast::*};
 use crate::{tools::tool, Value};
 
 
-pub async fn eval_program(program: &str) -> Result<()>
+pub async fn eval_program(input: &str) -> Result<()>
 {
-    let program = parse_program(program)?;
+    let program = parse_program(input)?;
 
     let mut interpreter = Interpreter::default();
     interpreter.eval(program).await?;
@@ -16,15 +16,14 @@ pub async fn eval_program(program: &str) -> Result<()>
     Ok(())
 }
 
-
 #[derive(Default)]
-struct Interpreter {
+pub struct Interpreter {
     ctx: SessionContext,
     vars: HashMap<String, Value>,
 }
 
 impl Interpreter {
-    async fn eval(&mut self, program: Program) -> Result<()>
+    pub async fn eval(&mut self, program: Program) -> Result<()>
     {
         for stmt in program.statements {
             self.eval_statement(stmt).await?;
@@ -33,7 +32,7 @@ impl Interpreter {
         Ok(())
     }
 
-    async fn eval_statement(&mut self, stmt: Statement) -> Result<()>
+    pub async fn eval_statement(&mut self, stmt: Statement) -> Result<()>
     {
         let value = self.eval_flow(&stmt.flow, Value::None).await?;
 

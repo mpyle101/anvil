@@ -15,13 +15,22 @@ pub fn parse_program(input: &str) -> Result<Program>
     builder.eval(program)
 }
 
+pub fn parse_statement(builder: &mut ASTBuilder, input: &str) -> Result<Statement>
+{
+    let mut pairs = AnvilParser::parse(Rule::statement, input)?;
+    let statement = pairs.next().unwrap();
+
+    builder.parse_statement(statement)
+}
+
+
 #[derive(Default)]
-struct ASTBuilder {
+pub struct ASTBuilder {
     next_tool_id: usize,
 }
 
 impl ASTBuilder {
-    fn new() -> Self
+    pub fn new() -> Self
     {
         Self { next_tool_id: 1 }
     }
