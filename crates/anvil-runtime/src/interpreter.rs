@@ -23,6 +23,11 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
+    pub fn reset(&mut self)
+    {
+        self.ctx = SessionContext::default();
+    }
+
     pub async fn eval(&mut self, program: Program) -> Result<()>
     {
         for stmt in program.statements {

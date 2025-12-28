@@ -30,7 +30,8 @@ pub async fn run_repl() -> Result<()>
                     println!("<help for {tool}>");
                     continue;
                 }
-                Some(Cmd::Exit) => return Ok(()),
+                Some(Cmd::Reset) => interpreter.reset(),
+                Some(Cmd::Exit)  => return Ok(()),
                 None => {}
             }
         }
@@ -55,6 +56,7 @@ enum Cmd {
     Run(String),
     Help(String),
     Exit,
+    Reset,
 }
 
 fn readline() -> Result<String>
@@ -95,6 +97,7 @@ fn parse_command(line: &str) -> Result<Option<Cmd>>
                 Some(Cmd::Help("".into()))
             }
         }
+        Some("reset") =>  Some(Cmd::Reset),
         Some("exit") | Some("quit") => Some(Cmd::Exit),
         _ => None,
     };
