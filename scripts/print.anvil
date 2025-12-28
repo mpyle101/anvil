@@ -1,1 +1,2 @@
+# The print tool write the input data frame to stdout.
 [input:'./data/jester.parquet'] | [print: 10];

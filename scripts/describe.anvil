@@ -1,1 +1,3 @@
+# Describe creates a data frame containing metadata
+# about the input data frame.
 [input: './data/messy.parquet'] | [describe] | [print];

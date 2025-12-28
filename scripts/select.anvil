@@ -1,3 +1,4 @@
+# Variables are set via the binding operator: '|>' 
 [input: './data/right.parquet'] | [select: 'id,email,title] |> df;
 [input: './data/left.parquet'] | [select: 'id,first_name,last_name'] |> df2;
 

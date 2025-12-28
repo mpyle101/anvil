@@ -2,7 +2,8 @@
 // Whitespace & basics
 // =======================
 
-WHITESPACE = _{ " " | "\t" | NEWLINE }
+COMMENT    = _{ "#"  ~ (!NEWLINE ~ ANY)* ~ NEWLINE? }
+WHITESPACE = _{ " " | "\t" | NEWLINE | COMMENT }
 NEWLINE    = _{ "\r\n" | "\n" }
 
 // =======================

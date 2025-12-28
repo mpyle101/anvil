@@ -1,3 +1,5 @@
+# The filter outputs both the true and false values as
+# branches with separate data frames
 [input: './data/messy.parquet'] | [filter: '$three == true']:
 	true => [print],
 	false => df;

@@ -1,3 +1,5 @@
+# Select tools can be used to rename columns as well as
+# pick them out of a data frame.
 [input: './data/right.parquet'] | [select: 'id:id_r,email,title] |> df;
 
 ([input: './data/left.parquet'] | [select: 'id:id,first_name,last_name'], df)

@@ -1,3 +1,4 @@
+# The projection tool can be used to a completely new data frame.
 [project:
   factorial='factorial(abs(2 * -5))'
   concat='concat("foo","bar")'

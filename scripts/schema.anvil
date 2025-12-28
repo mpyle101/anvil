@@ -1,1 +1,3 @@
+# The schema tool creates a new data frame containing
+# schema metadata about the input.
 [input: './data/left.parquet'] | [schema] | [print];
