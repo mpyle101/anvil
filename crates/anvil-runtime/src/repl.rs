@@ -61,7 +61,7 @@ enum Cmd {
 
 fn readline() -> Result<String>
 {
-    write!(std::io::stdout(), "> ")?;
+    write!(std::io::stdout(), "anvil> ")?;
     std::io::stdout().flush()?;
 
     let mut buffer = String::new();
