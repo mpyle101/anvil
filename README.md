@@ -37,10 +37,10 @@ A **flow** is a pipeline of tools connected with `|`.
 
 ### Variables
 
-You can bind the output of a flow to a variable using `|>`:
+You can bind the output of a flow to a variable using `>`:
 
 ```anvil
-[input: './data/users.parquet'] |> users;
+[input: './data/users.parquet'] > users;
 ```
 
 Variables can be referenced later in other flows:
@@ -54,7 +54,7 @@ users | [show];
 Some tools (like `join`) consume more than one input. Anvil supports **grouped inputs** using parentheses:
 
 ```anvil
-([input: './data/left.parquet'], users)
+(left=[input: './data/left.parquet'], right=users)
   | [join: type='inner' left='id' right='id']
   | [show];
 ```
@@ -151,7 +151,7 @@ Features:
 Example:
 
 ```text
-anvil> [input: './data/users.parquet'] |> users
+anvil> [input: './data/users.parquet'] > users
 anvil> users | [print]
 ```
 
@@ -183,9 +183,9 @@ Anything that is not a recognized command is treated as an Anvil statement.
 ### Join pipeline
 
 ```anvil
-[input: './data/right.parquet'] |> right;
+[input: './data/right.parquet'] > sd;
 
-([input: './data/left.parquet'], right)
+(left=[input: './data/left.parquet'], right=df)
   | [join: type='inner' left='id' right='id']
   | [print];
 ```

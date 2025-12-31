@@ -111,7 +111,8 @@ impl ASTBuilder {
         Ok(var.as_str().to_string())
     }
 
-    fn build_flow(&mut self, flow: Pair<Rule>) -> Result<Flow> {
+    fn build_flow(&mut self, flow: Pair<Rule>) -> Result<Flow>
+    {
         let mut items = vec![];
 
         for flow_item in flow.into_inner() {
@@ -127,7 +128,8 @@ impl ASTBuilder {
         Ok(Flow { items })
     }
 
-    fn build_flow_item(&mut self, flow_item: Pair<Rule>) -> Result<FlowItem> {
+    fn build_flow_item(&mut self, flow_item: Pair<Rule>) -> Result<FlowItem>
+    {
         let inner = flow_item.into_inner().next()
             .ok_or_else(|| anyhow!("empty flow item"))?;
 
