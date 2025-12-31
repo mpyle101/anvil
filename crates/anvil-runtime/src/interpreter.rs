@@ -2,13 +2,19 @@ use std::collections::HashMap;
 use anyhow::{anyhow, Result};
 use datafusion::execution::context::SessionContext;
 
-use anvil_parse::{parse_program, anvil::ast::*};
+use anvil_parse::{build_program, anvil::ast::*};
 use crate::{tools::tool, Value};
 
+//use crate::Planner;
 
 pub async fn eval_program(input: &str) -> Result<()>
 {
-    let program = parse_program(input)?;
+    // let program = parse_program(input)?;
+    // let mut planner = Planner::default();
+    // let plan = planner.build_plan(program);
+    // println!("PLAN:\n{plan:?}");
+
+    let program = build_program(input)?;
 
     let mut interpreter = Interpreter::default();
     interpreter.eval(program).await?;
@@ -73,7 +79,7 @@ impl Interpreter {
                 FlowItem::Group(flows) => {
                     let mut data = Vec::new();
                     for f in flows {
-                        match Box::pin(self.eval_flow(f, Value::None)).await? {
+                        match Box::pin(self.eval_flow(&f.flow, Value::None)).await? {
                             Value::None => {},
                             Value::Single(d) => data.push(d),
                             Value::Multiple(mut d) => data.append(&mut d)

@@ -5,72 +5,74 @@
 COMMENT    = _{ "#"  ~ (!NEWLINE ~ ANY)* ~ NEWLINE? }
 WHITESPACE = _{ " " | "\t" | NEWLINE | COMMENT }
 NEWLINE    = _{ "\r\n" | "\n" }
+BIND = { ">" }
+PIPE = { "|" }
 
 // =======================
 // Program structure
 // =======================
 
-program     = { SOI ~ statement* ~ EOI }
+PROGRAM    = { SOI ~ STATEMENT* ~ EOI }
 
 // A statement is a flow, optionally branched, optionally bound to a variable
-statement   = { flow ~ branch_block? ~ output_binding? ~ ";" }
+STATEMENT  = { FLOW ~ BRANCH_BLOCK? ~ OUTPUT_BINDING? ~ ";" }
 
 // Optional variable binding at the end of a statement
-BIND        = { "|>" }
-
-output_binding = { BIND ~ variable }
+OUTPUT_BINDING = { BIND ~ VARIABLE }
 
 // =======================
 // Flow
 // =======================
 
 // A flow is a linear pipeline of tools
-flow      = { flow_item ~ ("|" ~ flow_item)* }
+FLOW       = { (FLOW_ITEM ~ PIPE)* ~ FLOW_END }
+FLOW_ITEM  = { TOOL_REF | VARIABLE | GROUP }
+FLOW_END   = { TOOL_REF | VARIABLE }
 
-flow_item = { tool_ref | variable | group }
-
-group = { "(" ~ flow ~ ("," ~ flow)+ ~ ")" }
+// Grouping is fan in for tools requiring multiple inputs like joins
+GROUP      = { "(" ~ GROUP_ITEM ~ ("," ~ GROUP_ITEM)+ ~ ")" }
+GROUP_ITEM = { IDENTIFIER ~ "=" ~ FLOW }
 
 // =======================
 // Branching
 // =======================
 
 // Branching is fan-out from the result of a flow
-branch_block = { ":" ~ branches }
+BRANCH_BLOCK  = { ":" ~ BRANCHES }
 
 // Comma is REQUIRED between multiple branches
-branches     = { branch ~ ("," ~ branch)* }
+BRANCHES      = { BRANCH ~ ("," ~ BRANCH)* }
 
 // Each branch is named and points to its own flow OR variable
-branch       = { identifier ~ "=>" ~ branch_target }
+BRANCH        = { IDENTIFIER ~ "=>" ~ BRANCH_TARGET }
 
 // A branch can go to either a flow or directly to a variable
-branch_target = { variable | flow ~ output_binding? }
+BRANCH_TARGET = { VARIABLE | FLOW ~ OUTPUT_BINDING? }
 
 // =======================
 // Tool invocation
 // =======================
 
-tool_ref    = { "[" ~ identifier ~ (":" ~ tool_args)? ~ "]" }
+TOOL_REF    = { "[" ~ IDENTIFIER ~ (":" ~ TOOL_ARGS)? ~ "]" }
 
-tool_args   = @{ (!"]" ~ ANY)* }
+TOOL_ARGS   = @{ (!"]" ~ ANY)* }
 
-arg         = { keyword_arg | positional_arg }
+ARG         = { KEYWORD | POSITIONAL }
 
-keyword_arg = { identifier ~ "=" ~ literal }
-positional_arg = { literal }
+KEYWORD     = { IDENTIFIER ~ "=" ~ LITERAL }
+POSITIONAL  = { LITERAL }
 
 // =======================
 // Literals & identifiers
 // =======================
 
-literal     = { string | number | boolean }
+LITERAL     = { STRING | NUMBER | BOOLEAN }
 
-string      = @{ "'" ~ (!"'" ~ ANY)* ~ "'" }
-number      = @{ "-"? ~ ASCII_DIGIT+ }
-boolean     = { "true" | "false" }
+STRING      = @{ "'" ~ (!"'" ~ ANY)* ~ "'" }
+NUMBER      = @{ "-"? ~ ASCII_DIGIT+ }
+BOOLEAN     = { "true" | "false" }
 
-identifier  = @{ ASCII_ALPHANUMERIC+ }
+IDENTIFIER  = @{ ASCII_ALPHANUMERIC+ }
 
 // Variable name (same syntax as identifier, semantically distinct)
-variable    = @{ ASCII_ALPHANUMERIC+ }
+VARIABLE    = @{ ASCII_ALPHANUMERIC+ }

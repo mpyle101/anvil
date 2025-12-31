@@ -23,9 +23,21 @@ pub struct Flow {
 
 #[derive(Debug)]
 pub enum FlowItem {
-    Group(Vec<Flow>),
+    Group(Vec<GroupItem>),
     Tool(ToolRef),
     Variable(String),
+}
+
+#[derive(Debug)]
+pub enum FlowEnd {
+    Tool(ToolRef),
+    Variable(String),
+}
+
+#[derive(Debug)]
+pub struct GroupItem {
+    pub name: String,
+    pub flow: Flow,
 }
 
 #[derive(Debug)]
@@ -64,14 +76,14 @@ impl std::fmt::Display for ToolId {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ToolRef {
     pub id: ToolId,
     pub name: String,
     pub args: Vec<ToolArg>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum ToolArg {
     Positional(Literal),
     Keyword { key: String, value: Literal },

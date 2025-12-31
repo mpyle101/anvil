@@ -2,7 +2,7 @@ use std::io::Write;
 
 use anyhow::{anyhow, Result};
 
-use anvil_parse::{ASTBuilder, parse_program, parse_statement};
+use anvil_parse::{ASTBuilder, build_program, build_statement};
 use crate::Interpreter;
 
 pub async fn run_repl() -> Result<()>
@@ -41,7 +41,7 @@ pub async fn run_repl() -> Result<()>
         } else {
             format!("{line};")
         };
-        match parse_statement(&mut builder, &stmt) {
+        match build_statement(&mut builder, &stmt) {
             Ok(stmt) => {
                 if let Err(e) = interpreter.eval_statement(stmt).await {
                     println!("{e}");
@@ -73,7 +73,7 @@ fn readline() -> Result<String>
 async fn run_program(interpreter: &mut Interpreter, script: &str) -> Result<()>
 {
     let source = std::fs::read_to_string(script)?;
-    let program = parse_program(&source)?;
+    let program = build_program(&source)?;
     interpreter.eval(program).await?;
 
     Ok(())

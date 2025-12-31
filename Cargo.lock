@@ -138,6 +138,7 @@ dependencies = [
  "anvil-parse",
  "anyhow",
  "datafusion",
+ "petgraph",
 ]
 
 [[package]]
