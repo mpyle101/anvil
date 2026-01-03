@@ -1,40 +1,37 @@
 use anyhow::{anyhow, Result};
 use datafusion::scalar::ScalarValue;
 
-use crate::tools::{Data, ToolArg, ToolArgs, ToolRef, Value};
+use crate::tools::{ToolArgs, ToolRef, Values};
 
-pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
+pub async fn run(args: &FillArgs, inputs: Values) -> Result<Values>
 {
-    let Data { df, src } = match input {
-        Value::Single(data) => data,
-        _ => return Err(anyhow!("drop requires single input")),
-    };
+    let df = inputs.get_one().cloned()
+        .ok_or_else(|| anyhow!("fill tool requires input"))?;
 
-    let args: FillArgs = tr.args.as_slice().try_into()?;
-    let cols = args.cols.unwrap_or("".into())
-        .split(',')
-        .map(|s| s.to_owned())
-        .collect::<Vec<_>>();
+    let cols = args.cols.as_ref()
+        .map(|s| s.split(',').map(|c| c.to_owned()).collect())
+        .unwrap_or_default();
     let df = df.fill_null(ScalarValue::from(args.value), cols)?;
 
-    Ok(Value::Single(Data { df, src }))
+    Ok(Values::new(df))
 }
 
-struct FillArgs {
+#[derive(Debug)]
+pub struct FillArgs {
     value: i64,
     cols: Option<String>,
 }
 
-impl TryFrom<&[ToolArg]> for FillArgs {
+impl TryFrom<&ToolRef> for FillArgs {
     type Error = anyhow::Error;
 
-    fn try_from(args: &[ToolArg]) -> Result<Self>
+    fn try_from(tr: &ToolRef) -> Result<Self>
     {
-        let args = ToolArgs::new(args)?;
+        let args = ToolArgs::new(&tr.args)?;
         args.check_named_args(&[])?;
 
-        let value = args.require_positional_integer(0, "value")?;
-        let cols = args.optional_positional_string(1, "cols")?;
+        let value = args.required_positional_integer(0, "value")?;
+        let cols  = args.optional_positional_string(1, "cols")?;
 
         Ok(FillArgs { value, cols })
     }

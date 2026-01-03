@@ -1,17 +1,14 @@
+use core::default::Default;
 use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
 use petgraph::graph::{Graph, NodeIndex};
 
 use anvil_parse::anvil::ast::*;
+use crate::tools::Tool;
 
-type ExecutionPlan = Graph<Node, String>;
+pub type ExecutionPlan = Graph<ExecNode, ExecEdge>;
 
-#[derive(Debug)]
-pub enum Node {
-    Tool(ToolRef),
-    Variable(String),
-}
 
 #[derive(Default)]
 pub struct Planner {
@@ -36,11 +33,11 @@ impl Planner {
 
         if let Some(name) = &stmt.variable {
             let vx = self.add_var_node(name)?;
-            self.plan.try_add_edge(ix, vx, "default".into())?;
+            self.plan.try_add_edge(ix, vx, ExecEdge::default())?;
         }
 
-        if let Some(block) = &stmt.branch {
-            for branch in &block.branches {
+        if let Some(branches) = &stmt.branches {
+            for branch in branches {
                 self.build_branch(branch, ix)?;
             }
         }
@@ -55,58 +52,56 @@ impl Planner {
         input: Option<NodeIndex>,
     ) -> Result<NodeIndex>
     {
-        let mut current = match input {
-            None => vec![],
-            Some(ix) => vec![(port, ix)]
-        };
+        let mut current = input.map(|ix| (port, ix));
 
         for item in &flow.items {
             current = match item {
-                FlowItem::Tool(tool) => {
-                    let ix = self.add_tool_node(tool)?;
-                    for (p, i) in current {
-                        self.plan.try_add_edge(i, ix, p.into())?;
+                FlowItem::Tool(tr) => {
+                    let tool: Tool = tr.try_into()?;
+
+                    let mut fr = vec![];
+                    for f in tool.expand() {
+                        let ix = self.build_flow(&f.flow, "default", None)?;
+                        fr.push((f.port, ix));
                     }
-                    vec![("default", ix)]
+
+                    let ix = self.add_tool_node(&tr.id, tool)?;
+
+                    if let Some((p, src)) = current {
+                        self.plan.try_add_edge(src, ix, ExecEdge::new(p))?;
+                    }
+                    for (p, src) in fr {
+                        self.plan.try_add_edge(src, ix, ExecEdge::new(&p))?;
+                    }
+                    Some(("default", ix))
                 }
                 FlowItem::Variable(name) => {
                     let ix = self.vars.get(name)
                         .cloned()
                         .ok_or_else(|| anyhow!("undefined variable '{name}'"))?;
-                    for (p, i) in current {
-                        self.plan.try_add_edge(i, ix, p.into())?;
+                    if let Some((p, src)) = current {
+                        self.plan.try_add_edge(src, ix, ExecEdge::new(p))?;
                     }
-                    vec![("default", ix)]
-                }
-                FlowItem::Group(items) => {
-                    let mut nodes = Vec::new();
-                    for GroupItem { name, flow } in items {
-                        nodes.push((name.as_str(), self.build_flow(flow, name, None)?));
-                    }
-                    nodes
+                    Some(("default", ix))
                 }
             }
         }
 
-        Ok(current[0].1)
+        Ok(current.unwrap().1)
     }
 
-    fn build_branch(
-        &mut self,
-        branch: &Branch,
-        input: NodeIndex,
-    ) -> Result<()>
+    fn build_branch(&mut self, branch: &Branch, input: NodeIndex) -> Result<()>
     {
         match &branch.target {
-            BranchTarget::Variable(name) => {
+            Target::Variable(name) => {
                 let ix = self.add_var_node(name)?;
-                self.plan.try_add_edge(input, ix, branch.name.clone())?;
+                self.plan.try_add_edge(input, ix, ExecEdge::new(branch.name.as_str()))?;
             }
-            BranchTarget::Flow { flow, variable } => {
+            Target::Flow { flow, variable } => {
                 let ix = self.build_flow(flow, &branch.name, Some(input))?;
                 if let Some(name) = variable {
                     let vx = self.add_var_node(name)?;
-                    self.plan.try_add_edge(ix, vx, "default".into())?;
+                    self.plan.try_add_edge(ix, vx, ExecEdge::default())?;
                 }
             }
         }
@@ -114,13 +109,13 @@ impl Planner {
         Ok(())
     }
 
-    fn add_tool_node(&mut self, tr: &ToolRef) -> Result<NodeIndex>
+    fn add_tool_node(&mut self, id: &ToolId, tool: Tool) -> Result<NodeIndex>
     {
-        let ix = if let Some(ix) = self.tools.get(&tr.id) {
+        let ix = if let Some(ix) = self.tools.get(id) {
             *ix
         } else {
-            let ix = self.plan.try_add_node(Node::Tool(tr.clone()))?;
-            self.tools.insert(tr.id, ix);
+            let ix = self.plan.try_add_node(ExecNode::Tool(tool))?;
+            self.tools.insert(*id, ix);
             ix
         };
 
@@ -132,11 +127,36 @@ impl Planner {
         let ix = if let Some(ix) = self.vars.get(name) {
             *ix
         } else {
-            let ix = self.plan.try_add_node(Node::Variable(name.clone()))?;
+            let ix = self.plan.try_add_node(ExecNode::Variable)?;
             self.vars.insert(name.clone(), ix);
             ix
         };
 
         Ok(ix)
+    }
+}
+
+#[derive(Debug)]
+pub enum ExecNode {
+    Tool(Tool),
+    Variable,
+}
+
+#[derive(Debug)]
+pub struct ExecEdge {
+    pub port: String,
+}
+
+impl ExecEdge {
+    fn new(port: &str) -> Self
+    {
+        ExecEdge { port: port.into() }
+    }
+}
+
+impl Default for ExecEdge {
+    fn default() -> Self
+    {
+        ExecEdge { port: "default".into() }
     }
 }

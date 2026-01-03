@@ -2,13 +2,13 @@ use std::io::Write;
 
 use anyhow::{anyhow, Result};
 
-use anvil_parse::{ASTBuilder, build_program, build_statement};
-use crate::Interpreter;
+use crate::{run, Executor};
 
 pub async fn run_repl() -> Result<()>
 {
-    let mut builder = ASTBuilder::new();
-    let mut interpreter = Interpreter::default();
+    //let mut builder  = ASTBuilder::new();
+    //let mut planner  = Planner::default();
+    let mut executor = Executor::default();
 
     loop {
         let input = readline()?;
@@ -21,7 +21,8 @@ pub async fn run_repl() -> Result<()>
             Err(e)  => { println!("{e}"); continue; },
             Ok(cmd) => match cmd {
                 Some(Cmd::Run(script)) => {
-                    if let Err(e) = run_program(&mut interpreter, &script).await {
+                    let source = std::fs::read_to_string(script)?;
+                    if let Err(e) = run(&source).await {
                         println!("{e}");
                     }
                     continue;
@@ -30,25 +31,25 @@ pub async fn run_repl() -> Result<()>
                     println!("<help for {tool}>");
                     continue;
                 }
-                Some(Cmd::Reset) => interpreter.reset(),
+                Some(Cmd::Reset) => executor.reset(),
                 Some(Cmd::Exit)  => return Ok(()),
                 None => {}
             }
         }
 
-        let stmt = if line.ends_with(';') {
-            line.to_string()
-        } else {
-            format!("{line};")
-        };
-        match build_statement(&mut builder, &stmt) {
-            Ok(stmt) => {
-                if let Err(e) = interpreter.eval_statement(stmt).await {
-                    println!("{e}");
-                }
-            }
-            Err(e)  => println!("{e}"),
-        }
+        // let stmt = if line.ends_with(';') {
+        //     line.to_string()
+        // } else {
+        //     format!("{line};")
+        // };
+        // match build_statement(&mut builder, &stmt) {
+        //     Ok(stmt) => {
+        //         if let Err(e) = interpreter.eval_statement(stmt).await {
+        //             println!("{e}");
+        //         }
+        //     }
+        //     Err(e)  => println!("{e}"),
+        // }
     }
 }
 
@@ -68,15 +69,6 @@ fn readline() -> Result<String>
     std::io::stdin().read_line(&mut buffer)?;
 
     Ok(buffer)
-}
-
-async fn run_program(interpreter: &mut Interpreter, script: &str) -> Result<()>
-{
-    let source = std::fs::read_to_string(script)?;
-    let program = build_program(&source)?;
-    interpreter.eval(program).await?;
-
-    Ok(())
 }
 
 fn parse_command(line: &str) -> Result<Option<Cmd>>

@@ -4,14 +4,12 @@ use anyhow::{anyhow, Result};
 use datafusion::prelude::*;
 use datafusion::common::arrow::array::{BooleanArray, UInt64Array, StringArray};
 
-use crate::tools::{Data, ToolRef, Value};
+use crate::tools::Values;
 
-pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
+pub async fn run(inputs: Values) -> Result<Values>
 {
-    let Data { df, .. } = match input {
-        Value::Single(data) => data,
-        _ => return Err(anyhow!("schema requires single input")),
-    };
+    let df = inputs.get_one().cloned()
+        .ok_or_else(|| anyhow!("schema tool requires input"))?;
 
     let mut names = vec![];
     let mut sizes = vec![];
@@ -32,5 +30,5 @@ pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
         ("nullable", Arc::new(BooleanArray::from(nulls))),
     ])?;
 
-    Ok(Value::Single(Data { df, src: format!("schema ({})", tr.id) }))
+    Ok(Values::new(df))
 }

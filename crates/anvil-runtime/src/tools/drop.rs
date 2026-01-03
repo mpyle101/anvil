@@ -1,34 +1,32 @@
 use anyhow::{anyhow, Result};
 
-use crate::tools::{Data, ToolArg, ToolArgs, ToolRef, Value};
+use crate::tools::{ToolArgs, ToolRef, Values};
 
-pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
+pub async fn run(args: &DropArgs, inputs: Values) -> Result<Values>
 {
-    let Data { df, src } = match input {
-        Value::Single(data) => data,
-        _ => return Err(anyhow!("drop requires single input")),
-    };
+    let df = inputs.get_one().cloned()
+        .ok_or_else(|| anyhow!("drop tool requires input"))?;
 
-    let args: DropArgs = tr.args.as_slice().try_into()?;
     let cols = args.cols.split(',').collect::<Vec<_>>();
     let df = df.drop_columns(&cols)?;
 
-    Ok(Value::Single(Data { df, src }))
+    Ok(Values::new(df))
 }
 
-struct DropArgs {
+#[derive(Debug)]
+pub struct DropArgs {
     cols: String,
 }
 
-impl TryFrom<&[ToolArg]> for DropArgs {
+impl TryFrom<&ToolRef> for DropArgs {
     type Error = anyhow::Error;
 
-    fn try_from(args: &[ToolArg]) -> Result<Self>
+    fn try_from(tr: &ToolRef) -> Result<Self>
     {
-        let args = ToolArgs::new(args)?;
+        let args = ToolArgs::new(&tr.args)?;
         args.check_named_args(&[])?;
 
-        let cols = args.require_positional_string(0, "cols")?;
+        let cols = args.required_positional_string(0, "cols")?;
 
         Ok(DropArgs { cols })
     }

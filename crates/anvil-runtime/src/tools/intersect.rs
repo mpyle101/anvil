@@ -1,20 +1,42 @@
 use anyhow::{anyhow, Result};
 
-use crate::tools::{Data, ToolRef, Value};
+use crate::tools::{Flow, FlowRef, ToolArgs, ToolRef, Values};
 
-pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
+pub async fn run(inputs: Values) -> Result<Values>
 {
-    let data = match input {
-        Value::Multiple(data) => data,
-        _ => return Err(anyhow!("intersect requires multiple inputs")),
-    };
-    if data.len() != 2 {
-        return Err(anyhow!("intersect requires two data sets: (left, right)"))
+    let df_lt = inputs.dfs.get("left").cloned()
+        .ok_or_else(|| anyhow!("intersect tool requires left port"))?;
+    let df_rt = inputs.dfs.get("right").cloned()
+        .ok_or_else(|| anyhow!("intersect tool requires right port"))?;
+
+    let df = df_lt.intersect(df_rt)?;
+
+    Ok(Values::new(df))
+}
+
+pub fn flows(args: &IntersectArgs) -> Vec<FlowRef>
+{
+    vec![
+        FlowRef { port: "left".into(),  flow: args.flow_lt.clone() },
+        FlowRef { port: "right".into(), flow: args.flow_rt.clone() }
+    ]
+}
+
+#[derive(Debug)]
+pub struct IntersectArgs {
+    flow_lt: Flow,
+    flow_rt: Flow,
+}
+
+impl TryFrom<&ToolRef> for IntersectArgs {
+    type Error = anyhow::Error;
+
+    fn try_from(tr: &ToolRef) -> Result<Self>
+    {
+        let args = ToolArgs::new(&tr.args)?;
+        let flow_lt = args.required_positional_flow(0, "left")?;
+        let flow_rt = args.required_positional_flow(1, "right")?;
+
+        Ok(IntersectArgs { flow_lt, flow_rt })
     }
-    let df_left  = data[0].df.clone();
-    let df_right = data[1].df.clone();
-
-    let df = df_left.intersect(df_right)?;
-
-    Ok(Value::Single(Data { df, src: format!("intersect ({})", tr.id) }))
 }

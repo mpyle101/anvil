@@ -1,6 +1,6 @@
 # Variables are set via the binding operator: '|>' 
-[input: './data/right.parquet'] | [select: 'id,email,title] > df;
-[input: './data/left.parquet'] | [select: 'id,first_name,last_name'] > df2;
+[input: './data/right.parquet'] | [select: 'id,email,title'] > a;
+[input: './data/left.parquet'] | [select: 'id,first_name,last_name'] > b;
 
-df | [print: 10];
-df2 | [print: 10];
+a | [print: 10];
+b | [print: 10];

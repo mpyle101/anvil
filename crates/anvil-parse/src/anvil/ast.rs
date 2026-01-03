@@ -9,40 +9,22 @@ pub struct Statement {
     pub flow: Flow,
 
     /// Optional branch fan-out
-    pub branch: Option<BranchBlock>,
+    pub branches: Option<Vec<Branch>>,
 
     /// Optional variable binding for the entire statement
     pub variable: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Flow {
     /// Linear sequence of tools/variables
     pub items: Vec<FlowItem>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum FlowItem {
-    Group(Vec<GroupItem>),
     Tool(ToolRef),
     Variable(String),
-}
-
-#[derive(Debug)]
-pub enum FlowEnd {
-    Tool(ToolRef),
-    Variable(String),
-}
-
-#[derive(Debug)]
-pub struct GroupItem {
-    pub name: String,
-    pub flow: Flow,
-}
-
-#[derive(Debug)]
-pub struct BranchBlock {
-    pub branches: Vec<Branch>,
 }
 
 #[derive(Debug)]
@@ -51,11 +33,11 @@ pub struct Branch {
     pub name: String,
 
     /// Where this branch sends its data
-    pub target: BranchTarget,
+    pub target: Target,
 }
 
 #[derive(Debug)]
-pub enum BranchTarget {
+pub enum Target {
     /// Execute a flow, optionally binding its result
     Flow {
         flow: Flow,
@@ -69,13 +51,6 @@ pub enum BranchTarget {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ToolId(pub usize);
 
-impl std::fmt::Display for ToolId {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result
-    {
-        write!(f, "{}", self.0)
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct ToolRef {
     pub id: ToolId,
@@ -85,37 +60,15 @@ pub struct ToolRef {
 
 #[derive(Clone, Debug)]
 pub enum ToolArg {
-    Positional(Literal),
-    Keyword { key: String, value: Literal },
-}
-
-impl ToolArg {
-    pub fn as_string(&self) -> Option<String>
-    {
-        match self {
-            ToolArg::Positional(Literal::String(s)) => Some(s.clone()),
-            ToolArg::Keyword { value: Literal::String(s), .. } => Some(s.clone()),
-            _ => None,
-        }
-    }
+    Keyword { ident: String, value: ArgValue },
+    Positional(ArgValue),
 }
 
 #[derive(Clone, Debug)]
-pub enum Literal {
+pub enum ArgValue {
+    Flow(Flow),
+    Ident(String),
     Boolean(bool),
     Integer(i64),
     String(String),
-}
-
-impl std::fmt::Display for Literal {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result
-    {
-        use Literal::*;
-
-        match self {
-            Boolean(v) => write!(f, "{v}"),
-            Integer(v) => write!(f, "{v}"),
-            String(v)  => write!(f, "{v}"),
-        }
-    }
 }

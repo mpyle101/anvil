@@ -1,19 +1,15 @@
 # Sql tool data directly from a dataframe is handled
 # via keyword arguments with the argument key being
 # the comment.
-[input: './data/jester.parquet' table='data']
-  | [sql:
-      rowid='ROW_NUMBER() OVER (ORDER BY "FL_DATE")'
-      date='"FL_DATE"'
-    ]
-  | [print: 10];
+[register: './data/jester.parquet', table='A']
+| [sql: rowid='ROW_NUMBER() OVER (ORDER BY "FL_DATE")', date='"FL_DATE"']
+| [print: 10];
 
-# Input tools register the table which can be accessed
-# at any point with a sql having no input flows.
-[sql: 'SELECT "FL_DATE", "AIR_TIME", "DISTANCE" FROM data LIMIT 10']
-  | [print];
+[register: './data/jester.parquet', table='B']
+| [sql: 'SELECT "FL_DATE", "AIR_TIME", "DISTANCE" FROM B LIMIT 10']
+| [print];
 
 # The default table name is 'tbl'.
-[input: './data/jester.parquet'];
-[sql: 'SELECT "FL_DATE", "ARR_DELAY", "ARR_TIME" FROM tbl LIMIT 10']
-  | [print];
+[register: './data/jester.parquet']
+| [sql: 'SELECT "FL_DATE", "ARR_DELAY", "ARR_TIME" FROM tbl LIMIT 10']
+| [print];

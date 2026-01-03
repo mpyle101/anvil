@@ -2,33 +2,31 @@ use anyhow::{anyhow, Result};
 use datafusion::prelude::*;
 use datafusion::execution::context::SessionContext;
 
-use crate::tools::{Data, ToolArg, ToolArgs, ToolRef, Value};
+use crate::tools::{ToolArgs, ToolRef, Values};
 
-pub async fn run(tr: &ToolRef, input: Value, ctx: &SessionContext) -> Result<Value>
+pub async fn run(args: &CountArgs, inputs: Values, ctx: &SessionContext) -> Result<Values>
 {
-    let Data { df, .. } = match input {
-        Value::Single(data) => data,
-        _ => return Err(anyhow!("count tool requires single input")),
-    };
+    let df = inputs.get_one()
+        .ok_or_else(|| anyhow!("count tool requires input"))?;
 
-    let args: CountArgs = tr.args.as_slice().try_into()?;
     let n = df.clone().count().await? as i64;
     let df = ctx.read_empty()?
         .with_column(&args.col, lit(n))?;
 
-    Ok(Value::Single(Data { df, src: format!("count ({})", tr.id) }))
+    Ok(Values::new(df))
 }
 
-struct CountArgs {
+#[derive(Debug)]
+pub struct CountArgs {
     col: String,
 }
 
-impl TryFrom<&[ToolArg]> for CountArgs {
+impl TryFrom<&ToolRef> for CountArgs {
     type Error = anyhow::Error;
 
-    fn try_from(args: &[ToolArg]) -> Result<Self>
+    fn try_from(tr: &ToolRef) -> Result<Self>
     {
-        let args = ToolArgs::new(args)?;
+        let args = ToolArgs::new(&tr.args)?;
         args.check_named_args(&["col"])?;
 
         let col = args.optional_positional_string(0, "col")?.unwrap_or("count".into());

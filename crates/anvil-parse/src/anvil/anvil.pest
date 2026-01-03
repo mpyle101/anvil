@@ -25,13 +25,7 @@ OUTPUT_BINDING = { BIND ~ VARIABLE }
 // =======================
 
 // A flow is a linear pipeline of tools
-FLOW       = { (FLOW_ITEM ~ PIPE)* ~ FLOW_END }
-FLOW_ITEM  = { TOOL_REF | VARIABLE | GROUP }
-FLOW_END   = { TOOL_REF | VARIABLE }
-
-// Grouping is fan in for tools requiring multiple inputs like joins
-GROUP      = { "(" ~ GROUP_ITEM ~ ("," ~ GROUP_ITEM)+ ~ ")" }
-GROUP_ITEM = { IDENTIFIER ~ "=" ~ FLOW }
+FLOW       = { (TOOL_REF | VARIABLE) ~ (PIPE ~ (TOOL_REF | VARIABLE))* }
 
 // =======================
 // Branching
@@ -41,13 +35,13 @@ GROUP_ITEM = { IDENTIFIER ~ "=" ~ FLOW }
 BRANCH_BLOCK  = { ":" ~ BRANCHES }
 
 // Comma is REQUIRED between multiple branches
-BRANCHES      = { BRANCH ~ ("," ~ BRANCH)* }
+BRANCHES   = { BRANCH ~ ("," ~ BRANCH)* }
 
 // Each branch is named and points to its own flow OR variable
-BRANCH        = { IDENTIFIER ~ "=>" ~ BRANCH_TARGET }
+BRANCH     = { IDENTIFIER ~ "=>" ~ TARGET }
 
 // A branch can go to either a flow or directly to a variable
-BRANCH_TARGET = { VARIABLE | FLOW ~ OUTPUT_BINDING? }
+TARGET     = { VARIABLE | FLOW ~ OUTPUT_BINDING? }
 
 // =======================
 // Tool invocation
@@ -55,12 +49,16 @@ BRANCH_TARGET = { VARIABLE | FLOW ~ OUTPUT_BINDING? }
 
 TOOL_REF    = { "[" ~ IDENTIFIER ~ (":" ~ TOOL_ARGS)? ~ "]" }
 
-TOOL_ARGS   = @{ (!"]" ~ ANY)* }
+TOOL_ARGS   = { 
+    POSITIONAL ~ ("," ~ POSITIONAL)* ~ ("," ~ KEYWORD ~ ("," ~ KEYWORD)*)? |
+    KEYWORD ~ ("," ~ KEYWORD)*
+}
 
-ARG         = { KEYWORD | POSITIONAL }
+KEYWORD     = { IDENTIFIER ~ "=" ~ VALUE }
 
-KEYWORD     = { IDENTIFIER ~ "=" ~ LITERAL }
-POSITIONAL  = { LITERAL }
+POSITIONAL  = { !(IDENTIFIER ~ "=") ~ VALUE }
+
+VALUE       = { LITERAL | IDENTIFIER | "(" ~ FLOW ~ ")" }
 
 // =======================
 // Literals & identifiers
@@ -72,7 +70,7 @@ STRING      = @{ "'" ~ (!"'" ~ ANY)* ~ "'" }
 NUMBER      = @{ "-"? ~ ASCII_DIGIT+ }
 BOOLEAN     = { "true" | "false" }
 
-IDENTIFIER  = @{ ASCII_ALPHANUMERIC+ }
+IDENTIFIER  = @{ (ASCII_ALPHANUMERIC | "_")+ }
 
 // Variable name (same syntax as identifier, semantically distinct)
-VARIABLE    = @{ ASCII_ALPHANUMERIC+ }
+VARIABLE    = @{ (ASCII_ALPHANUMERIC | "_")+ }

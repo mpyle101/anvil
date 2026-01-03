@@ -49,20 +49,6 @@ Variables can be referenced later in other flows:
 users | [show];
 ```
 
-### Grouped Inputs (Multiple Inputs)
-
-Some tools (like `join`) consume more than one input. Anvil supports **grouped inputs** using parentheses:
-
-```anvil
-(left=[input: './data/left.parquet'], right=users)
-  | [join: type='inner' left='id' right='id']
-  | [show];
-```
-
-Grouped inputs produce multiple dataframes internally and are validated by tool arity checks.
-
----
-
 ## Expressions
 
 Anvil has its own expression language (separate from SQL) which is later translated into DataFusion expressions.

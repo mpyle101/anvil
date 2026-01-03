@@ -1,32 +1,50 @@
 use anyhow::{anyhow, Result};
-use datafusion::execution::context::SessionContext;
+use datafusion::prelude::{Expr, SessionContext};
 
 use crate::eval_expression;
-use crate::tools::{parse_expression, Data, ToolArg, ToolRef, Value};
+use crate::tools::{parse_expression, ArgValue, ToolArg, ToolRef, Values};
 
-pub async fn run(tr: &ToolRef, input: Value, ctx: &SessionContext) -> Result<Value>
+pub async fn run(args: &ProjectArgs, inputs: Values, ctx: &SessionContext) -> Result<Values>
 {
-    let df = match input {
-        Value::Single(data) => data.df,
-        Value::None => ctx.read_empty()?,
-        _ => return Err(anyhow!("projection requires single or no input")),
+    let df = if let Some(df) = inputs.get_one() {
+        df.clone()
+    } else {
+        ctx.read_empty()?
     };
+    let df = df.select(args.exprs.clone())?;
 
-    let mut exprs = Vec::new();
-    for arg in &tr.args {
-        match arg {
-            ToolArg::Positional(_) => {
-                return Err(anyhow!("projection tool only accepts keyword arguments"))
-            }
-            ToolArg::Keyword { key, value } => {
-                let expr  = parse_expression(value.to_string().as_str())?;
-                let right = eval_expression(&expr)?;
-                exprs.push(right.alias(key));
+    Ok(Values::new(df))
+}
+
+#[derive(Debug)]
+pub struct ProjectArgs {
+    exprs: Vec<Expr>,
+}
+
+impl TryFrom<&ToolRef> for ProjectArgs {
+    type Error = anyhow::Error;
+
+    fn try_from(tr: &ToolRef) -> Result<Self>
+    {
+        let mut exprs = Vec::new();
+        for arg in &tr.args {
+            match arg {
+                ToolArg::Positional(_) => {
+                    return Err(anyhow!("projection tool only accepts keyword arguments"))
+                }
+                ToolArg::Keyword { ident, value } => {
+                    match value {
+                        ArgValue::String(s) => {
+                            let expr  = parse_expression(s)?;
+                            let right = eval_expression(&expr)?;
+                            exprs.push(right.alias(ident));
+                        }
+                        _ => return Err(anyhow!("projection tool expression must be a string {value:?}"))
+                    }
+                }
             }
         }
+
+        Ok(ProjectArgs { exprs })
     }
-
-    let df = df.select(exprs)?;
-
-    Ok(Value::Single(Data { df, src: format!("project ({})", tr.id) }))
 }

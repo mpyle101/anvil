@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 use datafusion::execution::context::SessionContext;
 
 use anvil_parse::{build_program, anvil::ast::*};
-use crate::{tools::tool, Value};
+use crate::tools::{tool, Values};
 
 use crate::Planner;
 
@@ -25,7 +25,7 @@ pub async fn eval_program(input: &str) -> Result<()>
 #[derive(Default)]
 pub struct Interpreter {
     ctx: SessionContext,
-    vars: HashMap<String, Value>,
+    vars: HashMap<String, Values>,
 }
 
 impl Interpreter {
@@ -45,14 +45,14 @@ impl Interpreter {
 
     pub async fn eval_statement(&mut self, stmt: Statement) -> Result<()>
     {
-        let value = self.eval_flow(&stmt.flow, Value::None).await?;
+        let values = self.eval_flow(&stmt.flow, Values::default()).await?;
 
         if let Some(name) = &stmt.variable {
-            self.bind_variable(name, value.clone())?;
+            self.bind_variable(name, values.clone())?;
         }
 
         if let Some(branch) = &stmt.branch {
-            self.eval_branch_block(branch, value).await?;
+            self.eval_branch_block(branch, values).await?;
         }
 
         Ok(())
@@ -61,8 +61,8 @@ impl Interpreter {
     async fn eval_flow(
         &mut self,
         flow: &Flow,
-        input: Value
-    ) -> Result<Value>
+        input: Values
+    ) -> Result<Values>
     {
         let mut current = input;
 
@@ -96,7 +96,7 @@ impl Interpreter {
     async fn eval_branch_block(
         &mut self,
         block: &BranchBlock,
-        input: Value,
+        input: Values,
     ) ->Result<()>
     {
         let dfs = match input {
@@ -118,15 +118,15 @@ impl Interpreter {
     async fn eval_branch(
         &mut self,
         branch: &Branch,
-        input: Value,
+        inputs: Values,
     ) -> Result<()>
     {
         match &branch.target {
             BranchTarget::Variable(name) => {
-                self.bind_variable(name, input)?;
+                self.bind_variable(name, inputs)?;
             }
             BranchTarget::Flow { flow, variable } => {
-                let value = self.eval_flow(flow, input).await?;
+                let value = self.eval_flow(flow, inputs).await?;
                 if let Some(name) = variable {
                     self.bind_variable(name, value)?;
                 }
@@ -136,9 +136,9 @@ impl Interpreter {
         Ok(())
     }
 
-    async fn eval_tool(&mut self, tr: &ToolRef, input: Value) -> Result<Value>
+    async fn eval_tool(&mut self, tr: &ToolRef, inputs: Values) -> Result<Values>
     {
-        tool::run(tr, input, &self.ctx).await
+        tool::run(tr, inputs, &self.ctx).await
     }
 
     fn bind_variable(&mut self, name: &String, value: Value) -> Result<()>

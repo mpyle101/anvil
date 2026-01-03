@@ -11,17 +11,16 @@ mod limit;
 mod output;
 mod print;
 mod project;
+mod register;
 mod schema;
 mod select;
 mod sort;
 mod sql;
 mod union;
-mod value;
 
 pub mod tool;
 
-pub use tool::ToolArgs;
-pub use value::{Data, Value};
+pub use tool::{FlowRef, Tool, ToolArgs, Values};
 
-pub use anvil_parse::anvil::ast::{Literal, ToolArg, ToolRef};
+pub use anvil_parse::anvil::ast::{ArgValue, Flow, FlowItem, ToolArg, ToolRef};
 pub use anvil_parse::parse_expression;

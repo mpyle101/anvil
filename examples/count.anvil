@@ -2,4 +2,4 @@
 # number of rows in the input. The default name of the
 # column is 'count' but it can be overridden.
 [input: './data/messy.parquet'] | [count] | [print];
-[input: './data/jester.parquet'] | [count: "rows"] | [print];
+[input: './data/jester.parquet'] | [count: 'rows'] | [print];

@@ -4,23 +4,15 @@ use anyhow::{anyhow, Result};
 use datafusion::dataframe::DataFrameWriteOptions;
 use datafusion::logical_expr::logical_plan::dml::InsertOp;
 
-use crate::tools::{Data, ToolArg, ToolArgs, ToolRef, Value};
+use crate::tools::{ToolArgs, ToolRef, Values};
 
-pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
+pub async fn run(args: &OutputArgs, inputs: Values) -> Result<Values>
 {
     use OutputFormat::*;
 
-    let df = match input {
-        Value::Single(Data {df, ..}) => df,
-        Value::None => {
-            return Err(anyhow!("previous tool does not produce output"))
-        }
-        Value::Multiple(_) => {
-            return Err(anyhow!("output does not accept multiple values"))
-        }
-    };
+    let df = inputs.get_one().cloned()
+        .ok_or_else(|| anyhow!("output tool requires input"))?;
 
-    let args: OutputArgs = tr.args.as_slice().try_into()?;
     let options = DataFrameWriteOptions::new()
         .with_insert_operation(args.mode)
         .with_single_file_output(args.single);
@@ -31,33 +23,35 @@ pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
         parquet => df.write_parquet(&args.path, options, None).await?,
     };
 
-    Ok(Value::None)
+    Ok(Values::default())
 }
 
 
 #[allow(non_camel_case_types)]
+#[derive(Debug)]
 enum OutputFormat {
     csv,
     json,
     parquet
 }
 
-struct OutputArgs {
+#[derive(Debug)]
+pub struct OutputArgs {
     format: OutputFormat,
     mode: InsertOp,
     path: String,
     single: bool,
 }
 
-impl TryFrom<&[ToolArg]> for OutputArgs {
+impl TryFrom<&ToolRef> for OutputArgs {
     type Error = anyhow::Error;
 
-    fn try_from(args: &[ToolArg]) -> Result<Self>
+    fn try_from(tr: &ToolRef) -> Result<Self>
     {
-        let args = ToolArgs::new(args)?;
+        let args = ToolArgs::new(&tr.args)?;
         args.check_named_args(&["format"])?;
 
-        let path   = args.require_positional_string(0, "path")?;
+        let path   = args.required_positional_string(0, "path")?;
         let fpath  = Path::new(&path);
         let single = args.optional_bool("single")?.unwrap_or(true);
 

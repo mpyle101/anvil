@@ -1,55 +1,53 @@
 use anyhow::{anyhow, Result};
 use datafusion::prelude::col;
+use datafusion::logical_expr::SortExpr;
 
-use crate::tools::{Data, ToolArg, ToolArgs, ToolRef, Value};
+use crate::tools::{ToolArgs, ToolRef, Values};
 
-pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
+pub async fn run(args: &SortArgs, inputs: Values) -> Result<Values>
 {
-    let Data { df, src } = match input {
-        Value::Single(data) => data,
-        _ => return Err(anyhow!("sort requires single input")),
-    };
+    let df = inputs.get_one().cloned()
+        .ok_or_else(|| anyhow!("sort tool requires input"))?;
+    let df = df.sort(args.exprs.clone())?;
 
-    let args: SortArgs = tr.args.as_slice().try_into()?;
-    let expr = args.cols.split(',')
-        .map(|s| {
-            let parts = s.splitn(3, ':').collect::<Vec<_>>();
-            if parts.is_empty() || parts[0].is_empty() {
-                return Err(anyhow!("sort requires non-empty expressions"))
-            }
-            let expr = col(format!(r#""{}""#, parts[0]));
-            let sort = match parts.len() {
-                1 => expr.sort(false, false),
-                2 => expr.sort(parts[1] == true.to_string(), false),
-                _ => {
-                    expr.sort(
-                        parts[1] == true.to_string(),
-                        parts[2] == true.to_string(),
-                    )
-                }
-            };
-            Ok(sort)
-        })
-        .collect::<Result<Vec<_>>>()?;
-    let df = df.sort(expr)?;
-
-    Ok(Value::Single(Data { df, src }))
+    Ok(Values::new(df))
 }
 
-struct SortArgs {
-    cols: String,
+#[derive(Debug)]
+pub struct SortArgs {
+    exprs: Vec<SortExpr>,
 }
 
-impl TryFrom<&[ToolArg]> for SortArgs {
+impl TryFrom<&ToolRef> for SortArgs {
     type Error = anyhow::Error;
 
-    fn try_from(args: &[ToolArg]) -> Result<Self>
+    fn try_from(tr: &ToolRef) -> Result<Self>
     {
-        let args = ToolArgs::new(args)?;
+        let args = ToolArgs::new(&tr.args)?;
         args.check_named_args(&[])?;
 
-        let cols = args.require_positional_string(0, "cols")?;
+        let cols = args.required_positional_string(0, "cols")?;
+        let exprs = cols.split(',')
+            .map(|s| {
+                let parts = s.splitn(3, ':').collect::<Vec<_>>();
+                if parts.is_empty() || parts[0].is_empty() {
+                    return Err(anyhow!("sort requires non-empty expressions"))
+                }
+                let expr = col(format!(r#""{}""#, parts[0]));
+                let sort = match parts.len() {
+                    1 => expr.sort(false, false),
+                    2 => expr.sort(parts[1] == true.to_string(), false),
+                    _ => {
+                        expr.sort(
+                            parts[1] == true.to_string(),
+                            parts[2] == true.to_string(),
+                        )
+                    }
+                };
+                Ok(sort)
+            })
+            .collect::<Result<Vec<_>>>()?;
 
-        Ok(SortArgs { cols })
+        Ok(SortArgs { exprs })
     }
 }

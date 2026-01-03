@@ -1,47 +1,55 @@
 use anyhow::{anyhow, Result};
 use datafusion::prelude::JoinType;
 
-use crate::tools::{Data, ToolArg, ToolArgs, ToolRef, Value};
+use crate::tools::{Flow, FlowRef, ToolArgs, ToolRef, Values};
 
-pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
+pub async fn run(args: &JoinArgs, inputs: Values) -> Result<Values>
 {
-    let data = match input {
-        Value::Multiple(data) => data,
-        _ => return Err(anyhow!("join requires multiple inputs")),
-    };
-    if data.len() != 2 {
-        return Err(anyhow!("join requires two data sets: (left, right)"))
-    }
-    let df_lt = data[0].df.clone();
-    let df_rt = data[1].df.clone();
+    let df_lt = inputs.dfs.get("left").cloned()
+        .ok_or_else(|| anyhow!("join tool requires left port"))?;
+    let df_rt = inputs.dfs.get("right").cloned()
+        .ok_or_else(|| anyhow!("join tool requires right port"))?;
 
-    let args: JoinArgs = tr.args.as_slice().try_into()?;
-    let cols_lt = args.left.split(',').collect::<Vec<_>>();
-    let cols_rt = args.right.split(',').collect::<Vec<_>>();
+    let cols_lt = args.cols_lt.split(',').collect::<Vec<_>>();
+    let cols_rt = args.cols_rt.split(',').collect::<Vec<_>>();
     let df = df_lt.join(df_rt, args.join_type, &cols_lt, &cols_rt, None)?;
 
-    Ok(Value::Single(Data { df, src: format!("join ({})", tr.id) }))
+    Ok(Values::new(df))
 }
 
-struct JoinArgs {
-    left: String,
-    right: String,
+pub fn flows(args: &JoinArgs) -> Vec<FlowRef>
+{
+    vec![
+        FlowRef { port: "left".into(),  flow: args.flow_lt.clone() },
+        FlowRef { port: "right".into(), flow: args.flow_rt.clone() }
+    ]
+}
+
+#[derive(Debug)]
+pub struct JoinArgs {
+    cols_lt: String,
+    cols_rt: String,
+    flow_lt: Flow,
+    flow_rt: Flow,
     join_type: JoinType,
 }
 
-impl TryFrom<&[ToolArg]> for JoinArgs {
+impl TryFrom<&ToolRef> for JoinArgs {
     type Error = anyhow::Error;
 
-    fn try_from(args: &[ToolArg]) -> Result<Self>
+    fn try_from(tr: &ToolRef) -> Result<Self>
     {
-        let args = ToolArgs::new(args)?;
-        args.check_named_args(&["type", "left", "right"])?;
+        let args = ToolArgs::new(&tr.args)?;
+        args.check_named_args(&["type", "cols_lt", "cols_rt"])?;
 
-        let left = args.optional_string("left")?.ok_or(
-            anyhow!("join 'left' columns argument does not exist")
+        let flow_lt = args.required_positional_flow(0, "left")?;
+        let flow_rt = args.required_positional_flow(1, "right")?;
+
+        let cols_lt = args.optional_string("cols_lt")?.ok_or_else(
+            || anyhow!("join 'cols_lt' argument does not exist")
         )?;
-        let right = args.optional_string("right")?.ok_or(
-            anyhow!("join 'right' columns argument does not exist")
+        let cols_rt = args.optional_string("cols_rt")?.ok_or_else(
+            || anyhow!("join 'cols_tr' argument does not exist")
         )?;
 
         let join_type = args.optional_string("type")?;
@@ -51,12 +59,16 @@ impl TryFrom<&[ToolArg]> for JoinArgs {
             "outer" => JoinType::Full,
             "left"  => JoinType::Left,
             "right" => JoinType::Right,
-            _ => {
-                return Err(anyhow!("uknown join type '{join_type}"))
-            }
+            _ => return Err(anyhow!("uknown join type '{join_type}")),
         };
 
 
-        Ok(JoinArgs { left, right, join_type })
+        Ok(JoinArgs {
+            cols_lt,
+            cols_rt,
+            flow_lt,
+            flow_rt,
+            join_type
+        })
     }
 }

@@ -1,10 +1,11 @@
 # Select tools can be used to rename columns as well as
 # pick them out of a data frame.
-[input: './data/right.parquet' table="tbl1"] | [select: 'id:id_r,email,title] > df;
+[input: './data/left.parquet'] | [select: 'id,first_name,last_name'] > L;
 
-(
-  left=[input: './data/left.parquet' table="tbl2"] | [select: 'id:id,first_name,last_name'],
-  right=df
-)
-  | [join: type='inner' left='id' right='id_r']
-  | [print: 10];
+[join:
+  L,
+  ([input: './data/right.parquet'] | [select: 'id:id_r,email,title']),
+  type='inner',
+  cols_lt='id',
+  cols_rt='id_r'
+] | [print: 10];

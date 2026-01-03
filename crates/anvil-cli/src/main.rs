@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 
-use anvil_runtime::{eval_program, run_repl};
+use anvil_runtime::{run, run_repl};
 
 
 #[derive(Parser)]
@@ -16,7 +16,7 @@ async fn main() -> Result<()>
     let cli = Cli::parse();
     if let Some(script) = cli.script {
         let source = std::fs::read_to_string(&script)?;
-        eval_program(&source).await?;
+        run(&source).await?;
     } else {
         run_repl().await?;
     }

@@ -1,34 +1,31 @@
 use anyhow::{anyhow, Result};
 
-use crate::tools::{Data, ToolArg, ToolArgs, ToolRef, Value};
+use crate::tools::{ToolArgs, ToolRef, Values};
 
-pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
+pub async fn run(args: &LimitArgs, inputs: Values) -> Result<Values>
 {
-    let Data { df, src } = match input {
-        Value::Single(data) => data,
-        _ => return Err(anyhow!("limit requires single input")),
-    };
-
-    let args: LimitArgs = tr.args.as_slice().try_into()?;
+    let df = inputs.get_one().cloned()
+        .ok_or_else(|| anyhow!("limit tool requires input"))?;
     let df = df.limit(args.skip, Some(args.count))?;
 
-    Ok(Value::Single(Data { df, src }))
+    Ok(Values::new(df))
 }
 
-struct LimitArgs {
+#[derive(Debug)]
+pub struct LimitArgs {
     count: usize,
     skip: usize,
 }
 
-impl TryFrom<&[ToolArg]> for LimitArgs {
+impl TryFrom<&ToolRef> for LimitArgs {
     type Error = anyhow::Error;
 
-    fn try_from(args: &[ToolArg]) -> Result<Self>
+    fn try_from(tr: &ToolRef) -> Result<Self>
     {
-        let args = ToolArgs::new(args)?;
+        let args = ToolArgs::new(&tr.args)?;
         args.check_named_args(&["count"])?;
 
-        let count = args.require_positional_integer(0, "count")? as usize;
+        let count = args.required_positional_integer(0, "count")? as usize;
         let skip  = args.optional_integer("skip")?.unwrap_or(0) as usize;
 
         Ok(LimitArgs { count, skip })

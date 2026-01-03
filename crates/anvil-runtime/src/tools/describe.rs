@@ -1,15 +1,13 @@
 use anyhow::{anyhow, Result};
 
-use crate::tools::{Data, ToolRef, Value};
+use crate::tools::Values;
 
-pub async fn run(tr: &ToolRef, input: Value) -> Result<Value>
+pub async fn run(inputs: Values) -> Result<Values>
 {
-    let Data { df, .. } = match input {
-        Value::Single(data) => data,
-        _ => return Err(anyhow!("describe requires single input")),
-    };
+    let df = inputs.get_one().cloned()
+        .ok_or_else(|| anyhow!("describe tool requires input"))?;
 
     let df = df.describe().await?;
 
-    Ok(Value::Single(Data { df, src: format!("describe ({})", tr.id) }))
+    Ok(Values::new(df))
 }

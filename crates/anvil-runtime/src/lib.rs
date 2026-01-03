@@ -1,11 +1,30 @@
+use anyhow::Result;
+
+mod executor;
 mod expression;
-mod interpreter;
+//mod interpreter;
 mod planner;
 mod repl;
 mod tools;
 
+use executor::Executor;
+
 pub use expression::eval_expression;
-pub use interpreter::{Interpreter, eval_program};
-pub use planner::Planner;
+//pub use interpreter::{Interpreter, eval_program};
+pub use planner::{ExecutionPlan, ExecEdge, ExecNode, Planner};
 pub use repl::run_repl;
-pub use tools::Value;
+
+pub async fn run(input: &str) -> Result<()>
+{
+    let program = anvil_parse::build_program(input)?;
+    //println!("\nPROGRAM:\n{program:?}");
+
+    let mut planner = Planner::default();
+    let plan = planner.build(program)?;
+    //println!("PLAN:\n{plan:?}");
+
+    let mut executor = Executor::default();
+    executor.run(plan).await?;
+
+    Ok(())
+}

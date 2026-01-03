@@ -1,4 +1,4 @@
-[input: './data/jester.parquet]
+[input: './data/jester.parquet']
     | [limit: 15]
     | [sort: 'AIR_TIME']
     | [print];

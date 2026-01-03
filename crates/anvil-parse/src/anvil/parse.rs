@@ -59,7 +59,7 @@ impl ASTBuilder {
     fn build_statement(&mut self, pair: Pair<Rule>) -> Result<Statement>
     {
         let mut flow = None;
-        let mut branch = None;
+        let mut branches = None;
         let mut variable = None;
 
         for inner in pair.into_inner() {
@@ -68,7 +68,7 @@ impl ASTBuilder {
                     flow = Some(self.build_flow(inner)?);
                 }
                 Rule::BRANCH_BLOCK => {
-                    branch = Some(self.build_branch_block(inner)?);
+                    branches = Some(self.build_branches(inner)?);
                 }
                 Rule::OUTPUT_BINDING => {
                     variable = Some(self.build_variable_binding(inner)?);
@@ -79,12 +79,12 @@ impl ASTBuilder {
 
         Ok(Statement {
             flow: flow.ok_or_else(|| anyhow!("statement missing flow"))?,
-            branch,
+            branches,
             variable,
         })
     }
 
-    fn build_branch_block(&mut self, pair: Pair<Rule>) -> anyhow::Result<BranchBlock>
+    fn build_branches(&mut self, pair: Pair<Rule>) -> Result<Vec<Branch>>
     {
         let mut branches = Vec::new();
 
@@ -98,10 +98,40 @@ impl ASTBuilder {
             }
         }
 
-        Ok(BranchBlock { branches })
+        Ok(branches)
     }
 
-    fn build_variable_binding(&self, pair: Pair<Rule>) -> anyhow::Result<String>
+    fn build_branch(&mut self, pair: Pair<Rule>) -> Result<Branch>
+    {
+        let mut inner = pair.into_inner();
+        let name   = inner.next().unwrap();
+        let target = inner.next().unwrap();
+        let target = self.build_target(target)?;
+
+        Ok(Branch {
+            name: name.as_str().to_string(),
+            target,
+        })
+    }
+
+    fn build_target(&mut self, pair: Pair<Rule>) -> Result<Target>
+    {
+        let inner = pair.into_inner().next()
+            .ok_or_else(|| anyhow!("branch target must have one child"))?;
+
+        match inner.as_rule() {
+            Rule::VARIABLE => {
+                Ok(Target::Variable(inner.as_str().to_string()))
+            }
+            Rule::FLOW => {
+                let flow = self.build_flow(inner)?;
+                Ok(Target::Flow { flow, variable: None })
+            }
+            _ => Err(anyhow!("invalid branch target")),
+        }
+    }
+
+    fn build_variable_binding(&self, pair: Pair<Rule>) -> Result<String>
     {
         let var = pair
             .into_inner()
@@ -118,48 +148,17 @@ impl ASTBuilder {
         for flow_item in flow.into_inner() {
             match flow_item.as_rule() {
                 Rule::PIPE => {},
-                Rule::FLOW_ITEM | Rule::FLOW_END => {
-                    items.push(self.build_flow_item(flow_item)?)
+                Rule::TOOL_REF => {
+                    items.push(FlowItem::Tool(self.build_tool_ref(flow_item)?))
                 }
-                _ => return Err(anyhow!("illegal flow element {:?}", flow_item.as_rule()))
+                Rule::VARIABLE => {
+                    items.push(FlowItem::Variable(flow_item.as_str().to_string()))
+                }
+                _ => return Err(anyhow!("invalid flow item: {:?}", flow_item.as_rule()))
             }
         }
 
         Ok(Flow { items })
-    }
-
-    fn build_flow_item(&mut self, flow_item: Pair<Rule>) -> Result<FlowItem>
-    {
-        let inner = flow_item.into_inner().next()
-            .ok_or_else(|| anyhow!("empty flow item"))?;
-
-        let item = match inner.as_rule() {
-            Rule::GROUP => {
-                let mut items = Vec::new();
-                for item in inner.into_inner() {
-                    let mut gi = item.into_inner();
-                    let name = gi.next().ok_or_else(|| anyhow!("group port not found"))?;
-                    let flow = gi.next().ok_or_else(|| anyhow!("group flow not found"))?;
-
-                    items.push(
-                        GroupItem { 
-                            name: name.as_str().to_string(),
-                            flow: self.build_flow(flow)?
-                        }
-                    )
-                }
-                FlowItem::Group(items)
-            }
-            Rule::TOOL_REF => {
-                FlowItem::Tool(self.build_tool_ref(inner)?)
-            }
-            Rule::VARIABLE => {
-                FlowItem::Variable(inner.as_str().to_string())
-            }
-            _ => return Err(anyhow!("invalid flow item: {:?}", inner.as_rule()))
-        };
-
-        Ok(item)
     }
 
     fn build_tool_ref(&mut self, pair: Pair<Rule>) -> Result<ToolRef>
@@ -167,137 +166,58 @@ impl ASTBuilder {
         let mut inner = pair.into_inner();
         let name = inner.next().unwrap().as_str().to_string();
 
-        let tool_args = inner.next().map(|p| p.as_str()).unwrap_or("");
-        let args = if !tool_args.is_empty() {
-            self.build_args(tool_args)?
-        } else {
-            Vec::new()
-        };
+        let mut args = vec![];
+        if let Some(tool_args) = inner.next() {
+            for arg in tool_args.into_inner() {
+                match arg.as_rule() {
+                    Rule::POSITIONAL => {
+                        let value = arg.into_inner().next().unwrap();
+                        args.push(ToolArg::Positional(self.build_arg_value(value)?))
+                    }
+                    Rule::KEYWORD => {
+                        let mut inner = arg.into_inner();
+                        let ident = inner.next().unwrap().as_str().to_string();
+                        let value = self.build_arg_value(inner.next().unwrap())?;
+                        args.push(ToolArg::Keyword { ident, value })
+                    }
+                    _ => return Err(anyhow!("unexpected tool argument {:?}", arg.as_rule()))
+                }
+            }
+        }
 
         Ok(ToolRef { id: self.get_next_id(), name, args })
     }
 
-    fn build_branch(&mut self, pair: Pair<Rule>) -> anyhow::Result<Branch>
-    {
-        let mut inner = pair.into_inner();
-        let name   = inner.next().unwrap();
-        let target = inner.next().unwrap();
-        let target = self.build_branch_target(target)?;
-
-        Ok(Branch {
-            name: name.as_str().to_string(),
-            target,
-        })
-    }
-
-    fn build_branch_target(&mut self, pair: Pair<Rule>) -> anyhow::Result<BranchTarget>
+    fn build_arg_value(&mut self, pair: Pair<Rule>) -> Result<ArgValue>
     {
         let inner = pair.into_inner().next()
-            .ok_or_else(|| anyhow!("branch target must have one child"))?;
+            .ok_or_else(|| anyhow!("empty arg value encountered"))?;
 
-        match inner.as_rule() {
-            Rule::VARIABLE => {
-                Ok(BranchTarget::Variable(inner.as_str().to_string()))
-            }
-            Rule::FLOW => {
-                let flow = self.build_flow(inner)?;
-                Ok(BranchTarget::Flow { flow, variable: None })
-            }
-            _ => Err(anyhow!("invalid branch target")),
-        }
+        let v = match inner.as_rule() {
+            Rule::FLOW       => ArgValue::Flow(self.build_flow(inner)?),
+            Rule::LITERAL    => self.build_literal(inner)?,
+            Rule::IDENTIFIER => ArgValue::Ident(inner.as_str().to_string()),
+            _ => return Err(anyhow!("unexpected arg value {:?}", inner.as_rule()))
+        };
+
+        Ok(v)
     }
 
-    fn build_args(&self, input: &str) -> Result<Vec<ToolArg>>
+    fn build_literal(&self, pair: Pair<Rule>) -> Result<ArgValue>
     {
-        let tokens = tokenize(input);
-        let mut args = Vec::new();
-        let mut i = 0;
+        let inner = pair.into_inner().next().unwrap();
 
-        while i < tokens.len() {
-            if i + 2 < tokens.len() && let (
-                Token::Ident(key),
-                Token::Equals,
-                Token::String(val),
-            ) = (&tokens[i], &tokens[i + 1], &tokens[i + 2])
-            {
-                args.push(ToolArg::Keyword {
-                    key: key.clone(),
-                    value: self.build_literal(val),
-                });
-                i += 3;
-            } else if let Token::String(val) = &tokens[i] {
-                args.push(ToolArg::Positional(self.build_literal(val)));
-                i += 1;
-            } else if let Token::Ident(val) = &tokens[i] {
-                args.push(ToolArg::Positional(self.build_literal(val)));
-                i += 1;
-            } else {
-                return Err(anyhow!("invalid tool argument syntax: {input}"));
+        let av = match inner.as_rule() {
+            Rule::BOOLEAN => ArgValue::Boolean(inner.as_str() == "true"),
+            Rule::NUMBER  => ArgValue::Integer(inner.as_str().parse::<i64>()?),
+            Rule::STRING  => {
+                let s = inner.as_str();
+                let v = &s[1..s.len() - 1];
+                ArgValue::String(v.to_string())
             }
-        }
+            _ => return Err(anyhow!("unexpected literal {:?}", inner.as_rule()))
+        };
 
-        Ok(args)
+        Ok(av)
     }
-
-    fn build_literal(&self, s: &str) -> Literal
-    {
-        if s == "true" || s == "false" {
-            Literal::Boolean(s == "true")
-        } else if let Ok(n) = s.parse::<i64>() {
-            Literal::Integer(n)
-        } else {
-            Literal::String(s.to_string())
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-enum Token {
-    Ident(String),
-    String(String),
-    Equals,
-}
-
-fn tokenize(input: &str) -> Vec<Token>
-{
-    let mut tokens = Vec::new();
-    let mut chars = input.chars().peekable();
-
-    while let Some(&c) = chars.peek() {
-        match c {
-            ' ' | '\t' | '\n' => {
-                chars.next();
-            }
-            '=' => {
-                chars.next();
-                tokens.push(Token::Equals);
-            }
-            '\'' | '"' => {
-                let quote = chars.next().unwrap();
-                let mut s = String::new();
-
-                for ch in chars.by_ref() {
-                    if ch == quote {
-                        break;
-                    }
-                    s.push(ch);
-                }
-
-                tokens.push(Token::String(s));
-            }
-            _ => {
-                let mut s = String::new();
-                while let Some(&ch) = chars.peek() {
-                    if ch.is_whitespace() || ch == '=' {
-                        break;
-                    }
-                    s.push(ch);
-                    chars.next();
-                }
-                tokens.push(Token::Ident(s));
-            }
-        }
-    }
-
-    tokens
 }
