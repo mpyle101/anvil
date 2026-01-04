@@ -6,12 +6,11 @@ use crate::anvil::ast::*;
 use crate::anvil::{AnvilParser, Rule};
 
 
-pub fn build_program(input: &str) -> Result<Program>
+pub fn build_program(builder: &mut ASTBuilder, input: &str) -> Result<Program>
 {
     let mut pairs = AnvilParser::parse(Rule::PROGRAM, input)?;
     let program = pairs.next().unwrap();
 
-    let mut builder = ASTBuilder::new();
     builder.build(program)
 }
 

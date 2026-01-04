@@ -115,9 +115,11 @@ dependencies = [
 name = "anvil-cli"
 version = "0.1.0"
 dependencies = [
+ "anvil-parse",
  "anvil-runtime",
  "anyhow",
  "clap",
+ "petgraph",
  "tokio",
 ]
 

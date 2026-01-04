@@ -5,12 +5,12 @@ use anyhow::{anyhow, Result};
 use anvil_parse::ASTBuilder;
 use crate::{run, run_stmt, Executor, Planner};
 
-pub async fn run_repl() -> Result<()>
+pub async fn run_repl(
+    builder: &mut ASTBuilder,
+    planner: &mut Planner,
+    executor: &mut Executor,
+) -> Result<()>
 {
-    let mut builder  = ASTBuilder::new();
-    let mut planner  = Planner::default();
-    let mut executor = Executor::default();
-
     loop {
         let input = readline()?;
         let line = input.trim();
@@ -23,7 +23,7 @@ pub async fn run_repl() -> Result<()>
             Ok(cmd) => match cmd {
                 Some(Cmd::Run(script)) => {
                     let source = std::fs::read_to_string(script)?;
-                    if let Err(e) = run(&source).await {
+                    if let Err(e) = run(builder, planner, executor, &source).await {
                         println!("{e}");
                     }
                     continue;
@@ -46,7 +46,7 @@ pub async fn run_repl() -> Result<()>
         } else {
             format!("{line};")
         };
-        match run_stmt(&mut builder, &mut planner, &mut executor, &stmt).await {
+        match run_stmt(builder, planner, executor, &stmt).await {
             Ok(_)  => {}
             Err(e) => println!("{e}"),
         }

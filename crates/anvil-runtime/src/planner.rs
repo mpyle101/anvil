@@ -1,5 +1,6 @@
 use core::default::Default;
 use std::collections::HashMap;
+use std::fmt;
 
 use anyhow::{anyhow, Result};
 use petgraph::graph::{Graph, NodeIndex};
@@ -142,6 +143,13 @@ pub enum ExecNode {
     Variable(String),
 }
 
+impl fmt::Display for ExecNode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
+    {
+        write!(f, "{}", self.name())
+    }
+}
+
 impl ExecNode {
     pub fn is_source(&self) -> bool
     {
@@ -164,6 +172,13 @@ impl ExecNode {
 #[derive(Debug)]
 pub struct ExecEdge {
     pub port: String,
+}
+
+impl fmt::Display for ExecEdge {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
+    {
+        write!(f, "{}", self.port)
+    }
 }
 
 impl ExecEdge {
