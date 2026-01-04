@@ -65,7 +65,9 @@ impl TryFrom<&ToolRef> for Tool {
 impl Tool {
     pub async fn run(&self, inputs: Option<Values>, ctx: &SessionContext) -> Result<Values>
     {
-        let outputs = if self.is_source() {
+        let outputs = if let Tool::Sql(args) = self {
+            sql::run(args, inputs, ctx).await?
+        } else if self.is_source() {
             if inputs.is_some() {
                 return Err(anyhow!("{} tool does not take input", self.name()))
             }
@@ -97,7 +99,6 @@ impl Tool {
                 Tool::Schema         => schema::run(inputs).await?,
                 Tool::Select(args)   => select::run(args, inputs).await?,
                 Tool::Sort(args)     => sort::run(args, inputs).await?,
-                Tool::Sql(args)      => sql::run(args, inputs, ctx).await?,
                 Tool::Union(_)       => union::run(inputs).await?,
                 _ => unreachable!("{} is not a sink tool", self.name())
             }

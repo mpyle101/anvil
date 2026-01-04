@@ -3,11 +3,12 @@ use datafusion::prelude::SessionContext;
 
 use crate::tools::{ArgValue, ToolArg, ToolRef, Values};
 
-pub async fn run(args: &SqlArgs, inputs: Values, ctx: &SessionContext) -> Result<Values>
+pub async fn run(args: &SqlArgs, inputs: Option<Values>, ctx: &SessionContext) -> Result<Values>
 {
     let df = if let Some(sql) = &args.sql {
         ctx.sql(sql).await?
-    } else if let Some(df) = inputs.get_one() {
+    } else if let Some(v) = inputs {
+        let df = v.get_one().unwrap();
         let mut exprs = vec![];
         for (ident, sql) in &args.exprs {
             let expr = df.parse_sql_expr(sql)?;
@@ -15,7 +16,7 @@ pub async fn run(args: &SqlArgs, inputs: Values, ctx: &SessionContext) -> Result
         }
         df.clone().select(exprs)?
     } else {
-        return Err(anyhow!("SQL string not found"))
+        return Err(anyhow!("sql tool requires SQL string or input"))
     };
 
     Ok(Values::new(df))
