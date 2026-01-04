@@ -27,7 +27,7 @@ impl Planner {
         Ok(&self.plan)
     }
 
-    fn build_statement(&mut self, stmt: Statement) -> Result<()>
+    pub fn build_statement(&mut self, stmt: Statement) -> Result<&ExecutionPlan>
     {
         let ix = self.build_flow(&stmt.flow, "*", None)?;
 
@@ -42,7 +42,7 @@ impl Planner {
             }
         }
 
-        Ok(())
+        Ok(&self.plan)
     }
 
     fn build_flow(

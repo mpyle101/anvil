@@ -2,12 +2,13 @@ use std::io::Write;
 
 use anyhow::{anyhow, Result};
 
-use crate::{run, Executor};
+use anvil_parse::ASTBuilder;
+use crate::{run, run_stmt, Executor, Planner};
 
 pub async fn run_repl() -> Result<()>
 {
-    //let mut builder  = ASTBuilder::new();
-    //let mut planner  = Planner::default();
+    let mut builder  = ASTBuilder::new();
+    let mut planner  = Planner::default();
     let mut executor = Executor::default();
 
     loop {
@@ -37,19 +38,15 @@ pub async fn run_repl() -> Result<()>
             }
         }
 
-        // let stmt = if line.ends_with(';') {
-        //     line.to_string()
-        // } else {
-        //     format!("{line};")
-        // };
-        // match build_statement(&mut builder, &stmt) {
-        //     Ok(stmt) => {
-        //         if let Err(e) = interpreter.eval_statement(stmt).await {
-        //             println!("{e}");
-        //         }
-        //     }
-        //     Err(e)  => println!("{e}"),
-        // }
+        let stmt = if line.ends_with(';') {
+            line.to_string()
+        } else {
+            format!("{line};")
+        };
+        match run_stmt(&mut builder, &mut planner, &mut executor, &stmt).await {
+            Ok(_)  => {}
+            Err(e) => println!("{e}"),
+        }
     }
 }
 
