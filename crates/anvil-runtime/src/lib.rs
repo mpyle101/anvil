@@ -17,11 +17,9 @@ pub use repl::run_repl;
 pub async fn run(input: &str) -> Result<()>
 {
     let program = anvil_parse::build_program(input)?;
-//    println!("\nPROGRAM:\n{program:?}");
 
     let mut planner = Planner::default();
     let plan = planner.build(program)?;
-//    println!("PLAN:\n{plan:?}");
 
     let mut executor = Executor::default();
     executor.run(plan).await?;

@@ -94,6 +94,8 @@ impl Executor {
                     self.dfs.insert((ix, port.clone()), df.clone());
                 } else if let Some(df) = values.dfs.get(port) {
                     self.dfs.insert((ix, port.clone()), df.clone());
+                } else if port == "default" && let Some(df) = values.get_one() {
+                    self.dfs.insert((ix, port.clone()), df.clone());
                 }
             }
             _ => {
