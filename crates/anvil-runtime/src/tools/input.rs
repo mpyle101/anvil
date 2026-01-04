@@ -7,13 +7,9 @@ use datafusion::prelude::{AvroReadOptions, CsvReadOptions, NdJsonReadOptions, Pa
 
 use crate::tools::{ToolArgs, ToolRef, Values};
 
-pub async fn run(args: &InputArgs, inputs: Values, ctx: &SessionContext) -> Result<Values>
+pub async fn run(args: &InputArgs, ctx: &SessionContext) -> Result<Values>
 {
     use InputFormat::*;
-
-    if !inputs.dfs.is_empty() {
-        return Err(anyhow!("input tool does not take input"));
-    }
 
     let df = match args.format {
         csv     => ctx.read_csv(&args.path, CsvReadOptions::default()).await?,

@@ -16,10 +16,15 @@ pub async fn run(args: &FilterArgs, inputs: Values) -> Result<Values>
     let df_false = df.filter(expr.is_not_true())?;
 
     let mut values = Values::default();
-    values.set(df_true, "true");
-    values.set(df_false, "false");
+    values.set("true",  df_true);
+    values.set("false", df_false);
 
     Ok(values)
+}
+
+pub fn outputs() -> Vec<&'static str>
+{
+    vec!["true", "false"]
 }
 
 #[derive(Debug)]

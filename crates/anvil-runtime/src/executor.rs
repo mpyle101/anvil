@@ -11,13 +11,15 @@ use petgraph::{
     visit::EdgeRef,
 };
 
-use crate::{tools::{tool, Values}, ExecutionPlan, ExecNode};
+use crate::{ExecutionPlan, ExecNode};
+use crate::tools::{tool, Values};
 
+type Inputs = HashMap<NodeIndex, Values>;
 
 #[derive(Default)]
 pub struct Executor {
     ctx: SessionContext,
-    dfs: HashMap<(NodeIndex, String), DataFrame>,
+    dfs: Inputs,
 }
 
 impl Executor {
@@ -33,7 +35,9 @@ impl Executor {
             Err(cycle) => return Err(anyhow!("cycle detected at node {:?}", cycle.node_id()))
         };
 
-        let (sources, nodes) = nodes.iter()
+        // Separate the nodes into pure sources and nodes requiring
+        // input in one way or another (pipeline, argument, variable).
+        let (sources, sinks) = nodes.iter()
             .fold((vec![], vec![]), |(mut src, mut nds), ix| {
                 if plan[*ix].is_source() { src.push(*ix) } else { nds.push(*ix) }
                 (src, nds)
@@ -41,7 +45,7 @@ impl Executor {
 
         // Run source tools first
         self.exec_nodes(&sources, plan).await?;
-        self.exec_nodes(&nodes, plan).await?;
+        self.exec_nodes(&sinks, plan).await?;
 
         Ok(())
     }
@@ -49,62 +53,45 @@ impl Executor {
     async fn exec_nodes(&mut self, nodes: &[NodeIndex], plan: &ExecutionPlan) -> Result<()>
     {
         for ix in nodes {
-            let inputs  = self.collect_inputs(plan, *ix);
+            let inputs  = self.dfs.remove(ix);
             let outputs = match &plan[*ix] {
                 ExecNode::Tool(tool) => {
                     tool.run(inputs, &self.ctx).await?
                 },
-                ExecNode::Variable => inputs,
+                ExecNode::Variable(name) => {
+                    if let Some(values) = inputs {
+                        self.dfs.insert(*ix, values.clone());
+                        values
+                    } else {
+                        return Err(anyhow!("uninitialized variable: {name}"))
+                    }
+                }
             };
-            self.apply_outputs(plan, *ix, outputs);
+
+            if !outputs.dfs.is_empty() {
+                for edge in plan.edges(*ix) {
+                    let e = edge.weight();
+                    let t = edge.target();
+                    let node = &plan[t];
+
+                    let mut v = self.dfs.entry(t).or_default();
+                    for (p, df) in &outputs.dfs {
+                        match node {
+                            ExecNode::Tool(tool) => {
+                                if *p == e.port || p == "*" || e.port == "*" {
+                                    v.set(&e.port, df.clone())
+                                }
+                            }
+                            ExecNode::Variable(_) => {
+                                v.set("*", df.clone())
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         Ok(())
     }
 
-    fn collect_inputs(&mut self, plan: &ExecutionPlan, ix: NodeIndex) -> Values
-    {
-        plan.edges_directed(ix, Incoming)
-            .filter_map(|edge| {
-                let src  = edge.source();
-                let port = &edge.weight().port;
-                self.dfs.get(&(src, port.clone()))
-                    .map(|df| (port.as_str(), df))
-            })
-            .fold(Values::default(), |mut v, (port, df)| {
-                v.set(df.clone(), port);
-                v
-            })
-    }
-
-    fn apply_outputs(&mut self, plan: &ExecutionPlan, ix: NodeIndex, values: Values)
-    {
-        // If there's only one edge out of the node, it's either a single
-        // branch or a named port for the default output. If the tool only
-        // outputs on the default port, take that value.
-        let ports = plan.edges(ix)
-            .map(|e| e.weight().port.clone())
-            .collect::<Vec<_>>();
-
-        match ports.len() {
-            0 => {},
-            1 => {
-                let port = &ports[0];
-                if let Some(df) = values.dfs.get("default") {
-                    self.dfs.insert((ix, port.clone()), df.clone());
-                } else if let Some(df) = values.dfs.get(port) {
-                    self.dfs.insert((ix, port.clone()), df.clone());
-                } else if port == "default" && let Some(df) = values.get_one() {
-                    self.dfs.insert((ix, port.clone()), df.clone());
-                }
-            }
-            _ => {
-                for port in ports {
-                    if let Some(df) = values.dfs.get(&port) {
-                        self.dfs.insert((ix, port.clone()), df.clone());
-                    }
-                }
-            }
-        }
-    }
 }

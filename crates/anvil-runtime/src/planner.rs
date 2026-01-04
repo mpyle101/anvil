@@ -29,7 +29,7 @@ impl Planner {
 
     fn build_statement(&mut self, stmt: Statement) -> Result<()>
     {
-        let ix = self.build_flow(&stmt.flow, "default", None)?;
+        let ix = self.build_flow(&stmt.flow, "*", None)?;
 
         if let Some(name) = &stmt.variable {
             let vx = self.add_var_node(name)?;
@@ -61,7 +61,7 @@ impl Planner {
 
                     let mut fr = vec![];
                     for f in tool.expand() {
-                        let ix = self.build_flow(&f.flow, "default", None)?;
+                        let ix = self.build_flow(&f.flow, "*", None)?;
                         fr.push((f.port, ix));
                     }
 
@@ -73,7 +73,7 @@ impl Planner {
                     for (p, src) in fr {
                         self.plan.try_add_edge(src, ix, ExecEdge::new(&p))?;
                     }
-                    Some(("default", ix))
+                    Some(("*", ix))
                 }
                 FlowItem::Variable(name) => {
                     let ix = self.vars.get(name)
@@ -82,7 +82,7 @@ impl Planner {
                     if let Some((p, src)) = current {
                         self.plan.try_add_edge(src, ix, ExecEdge::new(p))?;
                     }
-                    Some(("default", ix))
+                    Some(("*", ix))
                 }
             }
         }
@@ -127,7 +127,7 @@ impl Planner {
         let ix = if let Some(ix) = self.vars.get(name) {
             *ix
         } else {
-            let ix = self.plan.try_add_node(ExecNode::Variable)?;
+            let ix = self.plan.try_add_node(ExecNode::Variable(name.clone()))?;
             self.vars.insert(name.clone(), ix);
             ix
         };
@@ -139,7 +139,7 @@ impl Planner {
 #[derive(Debug)]
 pub enum ExecNode {
     Tool(Tool),
-    Variable,
+    Variable(String),
 }
 
 impl ExecNode {
@@ -149,6 +149,14 @@ impl ExecNode {
             tool.is_source()
         } else {
             false
+        }
+    }
+
+    pub fn name(&self) -> &str
+    {
+        match self {
+            ExecNode::Tool(tool)     => tool.name(),
+            ExecNode::Variable(name) => name,
         }
     }
 }
@@ -168,6 +176,6 @@ impl ExecEdge {
 impl Default for ExecEdge {
     fn default() -> Self
     {
-        ExecEdge { port: "default".into() }
+        ExecEdge { port: "*".into() }
     }
 }

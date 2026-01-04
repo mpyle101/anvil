@@ -63,31 +63,72 @@ impl TryFrom<&ToolRef> for Tool {
 }
 
 impl Tool {
-    pub async fn run(&self, inputs: Values, ctx: &SessionContext) -> Result<Values>
+    pub async fn run(&self, inputs: Option<Values>, ctx: &SessionContext) -> Result<Values>
     {
-        let outputs = match self {
-            Tool::Count(args)    => count::run(args, inputs, ctx).await?,
-            Tool::Describe       => describe::run(inputs).await?,
-            Tool::Distinct       => distinct::run(inputs).await?,
-            Tool::Drop(args)     => drop::run(args, inputs).await?,
-            Tool::Fill(args)     => fill::run(args, inputs).await?,
-            Tool::Filter(args)   => filter::run(args, inputs).await?,
-            Tool::Input(args)    => input::run(args, inputs, ctx).await?,
-            Tool::Intersect(_)   => intersect::run(inputs).await?,
-            Tool::Join(args)     => join::run(args, inputs).await?,
-            Tool::Limit(args)    => limit::run(args, inputs).await?,
-            Tool::Output(args)   => output::run(args, inputs).await?,
-            Tool::Print(args)    => print::run(args, inputs).await?,
-            Tool::Project(args)  => project::run(args, inputs, ctx).await?,
-            Tool::Register(args) => register::run(args, inputs, ctx).await?,
-            Tool::Schema         => schema::run(inputs).await?,
-            Tool::Select(args)   => select::run(args, inputs).await?,
-            Tool::Sort(args)     => sort::run(args, inputs).await?,
-            Tool::Sql(args)      => sql::run(args, inputs, ctx).await?,
-            Tool::Union(_)       => union::run(inputs).await?,
+        let outputs = if self.is_source() {
+            if inputs.is_some() {
+                return Err(anyhow!("{} tool does not take input", self.name()))
+            }
+
+            match self {
+                Tool::Input(args)    => input::run(args, ctx).await?,
+                Tool::Register(args) => register::run(args, ctx).await?,
+                _ => unreachable!("{} is not a source tool", self.name())
+            }
+        } else {
+            if inputs.is_none() {
+                return Err(anyhow!("{} tool requires input(s)", self.name()))
+            }
+
+            let inputs = inputs.unwrap();
+            match self {
+                Tool::Count(args)    => count::run(args, inputs, ctx).await?,
+                Tool::Describe       => describe::run(inputs).await?,
+                Tool::Distinct       => distinct::run(inputs).await?,
+                Tool::Drop(args)     => drop::run(args, inputs).await?,
+                Tool::Fill(args)     => fill::run(args, inputs).await?,
+                Tool::Filter(args)   => filter::run(args, inputs).await?,
+                Tool::Intersect(_)   => intersect::run(inputs).await?,
+                Tool::Join(args)     => join::run(args, inputs).await?,
+                Tool::Limit(args)    => limit::run(args, inputs).await?,
+                Tool::Output(args)   => output::run(args, inputs).await?,
+                Tool::Print(args)    => print::run(args, inputs).await?,
+                Tool::Project(args)  => project::run(args, inputs, ctx).await?,
+                Tool::Schema         => schema::run(inputs).await?,
+                Tool::Select(args)   => select::run(args, inputs).await?,
+                Tool::Sort(args)     => sort::run(args, inputs).await?,
+                Tool::Sql(args)      => sql::run(args, inputs, ctx).await?,
+                Tool::Union(_)       => union::run(inputs).await?,
+                _ => unreachable!("{} is not a sink tool", self.name())
+            }
         };
 
         Ok(outputs)
+    }
+
+    pub fn name(&self) -> &str
+    {
+        match self {
+            Tool::Count(_)     => "count",
+            Tool::Describe     => "describe",
+            Tool::Distinct     => "distinct",
+            Tool::Drop(_)      => "drop",
+            Tool::Fill(_)      => "fill",
+            Tool::Filter(_)    => "filter",
+            Tool::Input(_)     => "input",
+            Tool::Intersect(_) => "intersect",
+            Tool::Join(_)      => "join",
+            Tool::Limit(_)     => "limit",
+            Tool::Output(_)    => "output",
+            Tool::Print(_)     => "print",
+            Tool::Project(_)   => "project",
+            Tool::Register(_)  => "register",
+            Tool::Schema       => "schema",
+            Tool::Select(_)    => "select",
+            Tool::Sort(_)      => "sort",
+            Tool::Sql(_)       => "sql",
+            Tool::Union(_)     => "union",
+        }
     }
 
     pub fn expand(&self) -> Vec<FlowRef>
@@ -97,6 +138,15 @@ impl Tool {
             Tool::Intersect(args) => intersect::flows(args),
             Tool::Union(args)     => union::flows(args),
             _ => vec![],
+        }
+    }
+
+    pub fn outputs(&self) -> Vec<&str>
+    {
+        if let Tool::Filter(_) = self {
+            filter::outputs()
+        } else {
+            vec!["*"]
         }
     }
 
@@ -229,7 +279,7 @@ pub struct FlowRef {
     pub flow: Flow,
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Values {
     pub dfs: HashMap<String, DataFrame>,
 }
@@ -237,7 +287,7 @@ pub struct Values {
 impl Values {
     pub fn new(df: DataFrame) -> Self
     {
-        Values { dfs: HashMap::from([("default".into(), df)]) }
+        Values { dfs: HashMap::from([("*".into(), df)]) }
     }
 
     pub fn get_one(&self) -> Option<&DataFrame>
@@ -245,7 +295,7 @@ impl Values {
         self.dfs.values().next()
     }
     
-    pub fn set(&mut self, df: DataFrame, port: &str)
+    pub fn set(&mut self, port: &str, df: DataFrame)
     {
         self.dfs.insert(port.into(), df);
     }

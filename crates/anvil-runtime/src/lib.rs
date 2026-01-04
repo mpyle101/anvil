@@ -20,7 +20,7 @@ pub async fn run(input: &str) -> Result<()>
 
     let mut planner = Planner::default();
     let plan = planner.build(program)?;
-
+    
     let mut executor = Executor::default();
     executor.run(plan).await?;
 

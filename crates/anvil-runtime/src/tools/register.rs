@@ -7,13 +7,9 @@ use datafusion::prelude::{AvroReadOptions, CsvReadOptions, NdJsonReadOptions, Pa
 
 use crate::tools::{ToolArgs, ToolRef, Values};
 
-pub async fn run(args: &RegisterArgs, inputs: Values, ctx: &SessionContext) -> Result<Values>
+pub async fn run(args: &RegisterArgs, ctx: &SessionContext) -> Result<Values>
 {
     use Format::*;
-
-    if !inputs.dfs.is_empty() {
-        return Err(anyhow!("register tool does not take input"));
-    }
 
     let (path, table) = (&args.path, &args.table);
     match args.format {
