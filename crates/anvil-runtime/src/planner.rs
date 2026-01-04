@@ -142,6 +142,17 @@ pub enum ExecNode {
     Variable,
 }
 
+impl ExecNode {
+    pub fn is_source(&self) -> bool
+    {
+        if let ExecNode::Tool(tool) = self {
+            tool.is_source()
+        } else {
+            false
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ExecEdge {
     pub port: String,

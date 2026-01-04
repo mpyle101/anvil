@@ -98,7 +98,12 @@ impl Tool {
             Tool::Union(args)     => union::flows(args),
             _ => vec![],
         }
-}
+    }
+
+    pub fn is_source(&self) -> bool
+    {
+        matches!(self, Tool::Input(_) | Tool::Register(_))
+    }
 }
 
 #[derive(Debug)]
