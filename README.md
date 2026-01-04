@@ -269,6 +269,74 @@ df | [print];
 
 ---
 
+## Command Line Interface
+
+Anvil can be run either by providing a script file or by entering an interactive REPL (when no script is specified).
+
+### Usage
+
+~~~bash
+anvil [OPTIONS] [SCRIPT]
+~~~
+
+- `SCRIPT`  
+  Optional path to an Anvil script file.  
+  If omitted, Anvil starts in REPL mode.
+
+---
+
+### Options
+
+#### `-d, --dot [PATH]`
+
+Emit the execution plan as a **Graphviz DOT** graph instead of executing the plan.
+
+- If `PATH` is provided, the DOT output is written to that file.
+- If `PATH` is omitted, the DOT output is written to **stdout**.
+
+This is useful for inspecting execution order, data lineage, tool dependencies, and branching behavior.
+
+---
+
+## Examples
+
+### Run an Anvil script normally
+
+~~~bash
+anvil examples/join.avl
+~~~
+
+### Generate DOT output to stdout
+
+~~~bash
+anvil --dot examples/join.avl
+~~~
+
+### Write DOT output to a file
+
+~~~bash
+anvil --dot plan.dot examples/join.avl
+~~~
+
+### Generate a PNG using Graphviz
+
+You can pipe the DOT output directly into the `dot` binary to generate an image:
+
+~~~bash
+anvil --dot examples/join.avl | dot -Tpng -o plan.png
+~~~
+
+Or, if you wrote the DOT file explicitly:
+
+~~~bash
+anvil --dot plan.dot examples/join.avl
+dot -Tpng plan.dot -o plan.png
+~~~
+
+The resulting graph visually distinguishes tools and variables, and edge labels represent data ports (including branch outputs such as `true` and `false`).
+
+---
+
 ## Status
 
 Anvil is under active development.
