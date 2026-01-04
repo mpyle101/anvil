@@ -32,7 +32,10 @@ pub async fn run_repl() -> Result<()>
                     println!("<help for {tool}>");
                     continue;
                 }
-                Some(Cmd::Reset) => executor.reset(),
+                Some(Cmd::Reset) => {
+                    executor.reset();
+                    continue;
+                }
                 Some(Cmd::Exit)  => return Ok(()),
                 None => {}
             }
