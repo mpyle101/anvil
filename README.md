@@ -1,203 +1,281 @@
 # Anvil
 
-Anvil is an experimental **dataflow language** built on top of **Apache Arrow DataFusion** and implemented in **Rust**. It is designed to make dataframe-oriented pipelines explicit, composable, and inspectable, with a strong focus on **data lineage**.
+**Anvil** is a dataflow-oriented scripting language and execution engine built on **Rust** and **Apache DataFusion**.
 
-Anvil scripts describe *how data flows through tools*, not just what SQL query is executed. This makes pipelines easier to reason about, debug, and eventually optimize.
+It is designed for **readable, composable, graph-friendly data pipelines** that can be parsed, analyzed, and executed deterministically.
 
-> ⚠️ Anvil is a work in progress. Syntax and semantics may evolve.
+At its core, Anvil treats data processing as a sequence of **tools** connected by **flows**, with optional branching and variable binding.
 
 ---
 
-## Core Concepts
+## Key Concepts
+
+### Flow-based execution
+
+An Anvil script is a sequence of **statements**. Each statement defines a **flow** of tools and variables connected by pipes (`|`).
+
+```anvil
+[input: './data/users.parquet'] | [select: 'id,email'] | [print];
+```
+
+Each tool consumes one or more dataframes and produces zero or more dataframes.
+
+---
 
 ### Tools
 
-Tools are the fundamental execution units in Anvil. A tool:
+Tools are written using **bracket syntax**:
 
-* consumes zero or more dataframes
-* produces zero, one, or many dataframes
-* has a unique identity for lineage tracking
+```anvil
+[tool_name: arguments]
+```
 
-Tools are written in **square brackets**:
+Examples:
 
 ```anvil
 [input: './data/users.parquet']
+[select: 'id,email']
+[print]
 ```
 
-### Flows
+The brackets clearly distinguish tools from variables and make branching explicit.
 
-A **flow** is a pipeline of tools connected with `|`.
-
-```anvil
-[input: './data/users.parquet']
-  | [filter: '$age > 30']
-  | [select: 'id,name,age']
-  | [print];
-```
+---
 
 ### Variables
 
-You can bind the output of a flow to a variable using `>`:
+A statement can bind its final result to a variable using `>`:
 
 ```anvil
 [input: './data/users.parquet'] > users;
 ```
 
-Variables can be referenced later in other flows:
+Variables may be used as inputs to later flows:
 
 ```anvil
-users | [show];
+users | [count] | [print];
 ```
 
-## Expressions
+Variables are first-class graph nodes — they represent stored data, not execution.
 
-Anvil has its own expression language (separate from SQL) which is later translated into DataFusion expressions.
+---
 
-### Expression syntax
+### Comments and whitespace
 
-* Infix operators: `+ - * / == != > < >= <= && ||`
-* Assignment: `=`
-* Booleans: `true`, `false`
-* Integers (`i64`) and floating point numbers (`f64`)
-* Column references use `$` notation
-
-Examples:
+* Comments start with `#`
+* Whitespace is flexible and mostly insignificant
 
 ```anvil
-$age > 30
-$total = $price * $quantity
-($a > 10) && ($b < 5)
+# Load users
+[input: './data/users.parquet'] > users;
 ```
 
-### Tools using expressions
+---
+
+## Grammar Overview (Informal)
+
+* Statements end with `;`
+* Tools are chained with `|`
+* Variable binding uses `>`
+* Tool arguments support:
+
+  * positional arguments
+  * keyword arguments
+  * flow arguments (nested pipelines in parentheses)
+
+---
+
+## Tool Arguments
+
+### Positional arguments
 
 ```anvil
-[filter: '$distance > 1000 && $active == true']
-
-[formula: '$total = $col1 + $col2 - 34.5']
+[limit: 10]
 ```
+
+### Keyword arguments
+
+```anvil
+[register: './data/users.parquet', table='users']
+```
+
+### Mixed positional + keyword (positional first)
+
+```anvil
+[sort: 'id', descending=true]
+```
+
+### Flow arguments (subflows)
+
+Some tools accept **flows as argument values**. Flows used as arguments must be wrapped in parentheses.
+
+```anvil
+[join:
+    df_lt=users
+    df_rt=([input: './data/orders.parquet'])
+    left_cols='id'
+    right_cols='user_id'
+]
+```
+
+A flow argument may reference:
+
+* a variable
+* a tool
+* an entire pipeline
 
 ---
 
 ## Branching
 
-Anvil supports **branching flows**, where a single input fans out into multiple pipelines:
+Flows may branch using `:` and named branch targets.
 
 ```anvil
-df:
-  adults  => [filter: '$age >= 18'],
-  minors  => [filter: '$age < 18'];
+users | [filter: '$age < 18']
+    : true => minors
+    , false => adults;
 ```
 
-Branches can later be rejoined or consumed independently.
+Each branch produces its own output flow.
 
 ---
 
-## Data Lineage
+## Available Tools
 
-Every tool invocation is assigned a **unique ID** during parsing. Each produced dataframe records:
+### I/O
 
-* which tool instance produced it
-* which parent dataframes it was derived from
+* **input** — read a file into a dataframe
+* **output** — write a dataframe to a file
+* **print** — write a dataframe to stdout
+* **register** — register a file as a SQL table
 
-This allows Anvil to build a full **data lineage DAG**, enabling:
+### Inspection
 
-* debugging
-* explain plans
-* future caching and optimization
+* **schema** — produce a dataframe describing the schema
+* **describe** — metadata and statistics
+* **count** — count rows
+* **distinct** — distinct rows
 
-(Lineage visualization and inspection tools are planned.)
+### Transformation
+
+* **select** — select columns / expressions
+* **filter** — filter rows using expressions
+* **project** — compute new columns from expressions
+* **sort** — sort by expressions
+* **limit** — limit number of rows
+* **drop** — drop columns
+* **fill** — fill null values
+
+### Set operations
+
+* **union**
+* **intersect**
+* **join**
+
+### SQL
+
+* **sql** — execute SQL against registered tables
 
 ---
 
-## Comments
+## Expressions
 
-Anvil supports comments that are ignored by the parser:
+Many tools accept **DataFusion expressions** as strings.
+
+Examples:
 
 ```anvil
-# Single-line comment
-
-#
-#  Block comment
-#
+[filter: '$age > 30']
+[project: total='$price * $quantity']
+[sort: '$created_at']
 ```
 
----
-
-## REPL Mode
-
-If no script file is provided, Anvil runs in **REPL mode**.
-
-Features:
-
-* execute one statement at a time
-* variables persist across statements
-* errors do not terminate the session
-
-Example:
-
-```text
-anvil> [input: './data/users.parquet'] > users
-anvil> users | [print]
-```
-
-### REPL Commands
-
-Commands are handled outside the language grammar:
-
-```text
-run path/to/script.anvil
-help
-exit
-```
-
-Anything that is not a recognized command is treated as an Anvil statement.
+Column references use `$column_name`.
 
 ---
 
 ## Example Scripts
 
-### Simple pipeline
+### Load and inspect data
+
+```anvil
+[input: './data/users.parquet'] > users;
+
+users | [schema] | [print];
+users | [count]  | [print];
+```
+
+---
+
+### Filtering and projection
 
 ```anvil
 [input: './data/users.parquet']
-  | [filter: '$active == true']
-  | [select: 'id,name,email']
-  | [show];
-```
-
-### Join pipeline
-
-```anvil
-[input: './data/right.parquet'] > sd;
-
-(left=[input: './data/left.parquet'], right=df)
-  | [join: type='inner' left='id' right='id']
-  | [print];
-```
-
-### Project with expressions
-
-```anvil
-[input: './data/orders.parquet']
-  | [project: total='$price * $quantity', discounted='$price * 0.9']
-  | [print];
+| [filter: '$age >= 18']
+| [project:
+      full_name='$first_name || " " || $last_name',
+      age_bucket='$age / 10'
+  ]
+| [print];
 ```
 
 ---
 
-## Project Status
+### Join with subflows
 
-Anvil is under active development. Major areas of work include:
-
-* expression → DataFusion translation
-* richer lineage inspection
-* optimizer passes
-* improved error diagnostics
-* documentation and examples
+```anvil
+[join:
+    type='inner'
+    df_lt=([input: './data/users.parquet'])
+    df_rt=([input: './data/orders.parquet'])
+    cols_lt='id'
+    cols_rt='user_id'
+]
+| [print];
+```
 
 ---
 
-## License
+### Branching example
 
-MIT License (see `LICENSE` file).
+```anvil
+[input: './data/messy.parquet'] | [filter: '$three == true']:
+	true => [print],
+	false => df;
+
+df | [print];
+```
+
+---
+
+### SQL example
+
+```anvil
+[register: './data/users.parquet', table='users'];
+
+[sql: 'SELECT age, COUNT(*) FROM users GROUP BY age']
+| [print];
+```
+
+---
+
+## Design Goals
+
+* **Readable pipelines**
+* **Explicit dataflow**
+* **Graph-based execution**
+* **Static analyzability (lineage, dependencies)**
+* **Tight integration with DataFusion**
+
+---
+
+## Status
+
+Anvil is under active development.
+
+Current areas of focus:
+
+* execution graph construction
+* data lineage tracking
+* REPL support
+* richer expression semantics
