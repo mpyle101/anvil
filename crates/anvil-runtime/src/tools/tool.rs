@@ -53,7 +53,7 @@ impl TryFrom<&ToolRef> for Tool {
             Some(Print)     => Tool::Print(tr.try_into()?),
             Some(Project)   => Tool::Project(tr.try_into()?),
             Some(Register)  => Tool::Register(tr.try_into()?),
-            Some(Schema)   => Tool::Schema,
+            Some(Schema)    => Tool::Schema,
             Some(Select)    => Tool::Select(tr.try_into()?),
             Some(Sort)      => Tool::Sort(tr.try_into()?),
             Some(Sql)       => Tool::Sql(tr.try_into()?),
