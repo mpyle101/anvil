@@ -8,4 +8,5 @@ anyhow = "1.0.100"
 datafusion = { version = "51.0.0", features = ["avro", "sql"] }
 petgraph = "0.8.3"
 
+anvil-context = { path = "../anvil-context" }
 anvil-parse = { path = "../anvil-parse" }

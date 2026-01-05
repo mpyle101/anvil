@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use datafusion::prelude::{Expr, SessionContext};
 
+use anvil_context::resolve;
 use crate::eval_expression;
 use crate::tools::{parse_expression, ArgValue, ToolArg, ToolRef, Values};
 
@@ -37,7 +38,7 @@ impl TryFrom<&ToolRef> for ProjectArgs {
                         ArgValue::String(s) => {
                             let expr  = parse_expression(s)?;
                             let right = eval_expression(&expr)?;
-                            exprs.push(right.alias(ident));
+                            exprs.push(right.alias(resolve(*ident)));
                         }
                         _ => return Err(anyhow!("projection tool expression must be a string {value:?}"))
                     }

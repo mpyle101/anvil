@@ -8,3 +8,5 @@ anyhow = "1.0.100"
 datafusion = "51.0.0"
 pest = "2.8.4"
 pest_derive = "2.8.4"
+
+anvil-context = { path = "../anvil-context" }

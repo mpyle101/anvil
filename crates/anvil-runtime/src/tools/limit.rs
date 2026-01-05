@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 
+use anvil_context::intern;
 use crate::tools::{ToolArgs, ToolRef, Values};
 
 pub async fn run(args: &LimitArgs, inputs: Values) -> Result<Values>
@@ -23,10 +24,10 @@ impl TryFrom<&ToolRef> for LimitArgs {
     fn try_from(tr: &ToolRef) -> Result<Self>
     {
         let args = ToolArgs::new(&tr.args)?;
-        args.check_named_args(&["count"])?;
+        args.check_named_args(&[intern("skip")])?;
 
         let count = args.required_positional_integer(0, "count")? as usize;
-        let skip  = args.optional_integer("skip")?.unwrap_or(0) as usize;
+        let skip  = args.optional_integer(intern("skip"))?.unwrap_or(0) as usize;
 
         Ok(LimitArgs { count, skip })
     }

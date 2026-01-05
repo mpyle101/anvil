@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 
+use anvil_context::intern;
 use crate::eval_expression;
 use crate::tools::{parse_expression, ToolArgs, ToolRef, Values};
 
@@ -16,8 +17,8 @@ pub async fn run(args: &FilterArgs, inputs: Values) -> Result<Values>
     let df_false = df.filter(expr.is_not_true())?;
 
     let mut values = Values::default();
-    values.set("true",  df_true);
-    values.set("false", df_false);
+    values.set(intern("true"),  df_true);
+    values.set(intern("false"), df_false);
 
     Ok(values)
 }

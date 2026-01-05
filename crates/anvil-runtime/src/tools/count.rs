@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use datafusion::prelude::*;
 use datafusion::execution::context::SessionContext;
 
+use anvil_context::intern;
 use crate::tools::{ToolArgs, ToolRef, Values};
 
 pub async fn run(args: &CountArgs, inputs: Values, ctx: &SessionContext) -> Result<Values>
@@ -27,7 +28,7 @@ impl TryFrom<&ToolRef> for CountArgs {
     fn try_from(tr: &ToolRef) -> Result<Self>
     {
         let args = ToolArgs::new(&tr.args)?;
-        args.check_named_args(&["col"])?;
+        args.check_named_args(&[intern("col")])?;
 
         let col = args.optional_positional_string(0, "col")?.unwrap_or("count".into());
 

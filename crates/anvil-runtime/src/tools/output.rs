@@ -4,6 +4,7 @@ use anyhow::{anyhow, Result};
 use datafusion::dataframe::DataFrameWriteOptions;
 use datafusion::logical_expr::logical_plan::dml::InsertOp;
 
+use anvil_context::intern;
 use crate::tools::{ToolArgs, ToolRef, Values};
 
 pub async fn run(args: &OutputArgs, inputs: Values) -> Result<Values>
@@ -49,13 +50,13 @@ impl TryFrom<&ToolRef> for OutputArgs {
     fn try_from(tr: &ToolRef) -> Result<Self>
     {
         let args = ToolArgs::new(&tr.args)?;
-        args.check_named_args(&["format"])?;
+        args.check_named_args(&[intern("format")])?;
 
         let path   = args.required_positional_string(0, "path")?;
         let fpath  = Path::new(&path);
-        let single = args.optional_bool("single")?.unwrap_or(true);
+        let single = args.optional_bool(intern("single"))?.unwrap_or(true);
 
-        let format = args.optional_string("format")?;
+        let format = args.optional_string(intern("format"))?;
         let format = match format {
             Some(s) => {
                 match s.as_str() {
@@ -80,7 +81,7 @@ impl TryFrom<&ToolRef> for OutputArgs {
             }
         };
 
-        let mode = args.optional_string("mode")?.unwrap_or_else(|| "append".into());
+        let mode = args.optional_string(intern("mode"))?.unwrap_or_else(|| "append".into());
         let mode = match mode.as_str() {
             "append"    => InsertOp::Append,
             "overwrite" => InsertOp::Overwrite,

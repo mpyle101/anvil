@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/anvil-context",
     "crates/anvil-cli",
     "crates/anvil-parse",
     "crates/anvil-runtime",

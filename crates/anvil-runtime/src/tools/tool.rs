@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use anyhow::{anyhow, Result};
 use datafusion::prelude::{DataFrame, SessionContext};
 
+use anvil_context::{intern, resolve, star, tool_types, Symbol, ToolType};
 use crate::tools::*;
 
 
@@ -34,28 +35,30 @@ impl TryFrom<&ToolRef> for Tool {
 
     fn try_from(tr: &ToolRef) -> Result<Self>
     {
-        let name = tr.name.as_str();
-        let tool = match name {
-            "count"     => Tool::Count(tr.try_into()?),
-            "describe"  => Tool::Describe,
-            "distinct"  => Tool::Distinct,
-            "drop"      => Tool::Drop(tr.try_into()?),
-            "fill"      => Tool::Fill(tr.try_into()?),
-            "filter"    => Tool::Filter(tr.try_into()?),
-            "input"     => Tool::Input(tr.try_into()?),
-            "intersect" => Tool::Intersect(tr.try_into()?),
-            "join"      => Tool::Join(tr.try_into()?),
-            "limit"     => Tool::Limit(tr.try_into()?),
-            "output"    => Tool::Output(tr.try_into()?),
-            "print"     => Tool::Print(tr.try_into()?),
-            "project"   => Tool::Project(tr.try_into()?),
-            "register"  => Tool::Register(tr.try_into()?),
-            "schema"    => Tool::Schema,
-            "select"    => Tool::Select(tr.try_into()?),
-            "sort"      => Tool::Sort(tr.try_into()?),
-            "sql"       => Tool::Sql(tr.try_into()?),
-            "union"     => Tool::Union(tr.try_into()?),
-            _ => return Err(anyhow!("unknown tool: {name}"))
+        use ToolType::*;
+
+        let name = tr.name;
+        let tool = match tool_types().get(&tr.name) {
+            Some(Count)     => Tool::Count(tr.try_into()?),
+            Some(Describe)  => Tool::Describe,
+            Some(Distinct)  => Tool::Distinct,
+            Some(Drop)      => Tool::Drop(tr.try_into()?),
+            Some(Fill)      => Tool::Fill(tr.try_into()?),
+            Some(Filter)    => Tool::Filter(tr.try_into()?),
+            Some(Input)     => Tool::Input(tr.try_into()?),
+            Some(Intersect) => Tool::Intersect(tr.try_into()?),
+            Some(Join)      => Tool::Join(tr.try_into()?),
+            Some(Limit)     => Tool::Limit(tr.try_into()?),
+            Some(Output)    => Tool::Output(tr.try_into()?),
+            Some(Print)     => Tool::Print(tr.try_into()?),
+            Some(Project)   => Tool::Project(tr.try_into()?),
+            Some(Register)  => Tool::Register(tr.try_into()?),
+            Some(Schema)   => Tool::Schema,
+            Some(Select)    => Tool::Select(tr.try_into()?),
+            Some(Sort)      => Tool::Sort(tr.try_into()?),
+            Some(Sql)       => Tool::Sql(tr.try_into()?),
+            Some(Union)     => Tool::Union(tr.try_into()?),
+            _ => return Err(anyhow!("unknown tool: {}", resolve(name)))
         };
 
         Ok(tool)
@@ -160,7 +163,7 @@ impl Tool {
 #[derive(Debug)]
 pub struct ToolArgs {
     positional: Vec<ArgValue>,
-    keyword: HashMap<String, ArgValue>,
+    keyword: HashMap<Symbol, ArgValue>,
 }
 
 impl ToolArgs {
@@ -172,8 +175,8 @@ impl ToolArgs {
         for arg in args {
             match arg {
                 ToolArg::Keyword { ident, value } => {
-                    if keyword.insert(ident.clone(), value.clone()).is_some() {
-                        return Err(anyhow!("duplicate named argument '{ident}'"));
+                    if keyword.insert(*ident, value.clone()).is_some() {
+                        return Err(anyhow!("duplicate named argument '{}'", resolve(*ident)));
                     }
                 }
                 ToolArg::Positional(v) => positional.push(v.clone()),
@@ -207,8 +210,8 @@ impl ToolArgs {
             Some(av) => {
                 match av {
                     ArgValue::Flow(f)   => Ok(f.clone()),
-                    ArgValue::Ident(s)  => Ok(Flow { items: vec![FlowItem::Variable(s.clone())]}),
-                    ArgValue::String(s) => Ok(Flow { items: vec![FlowItem::Variable(s.clone())]}),
+                    ArgValue::Ident(s)  => Ok(Flow { items: vec![FlowItem::Variable(intern(s))]}),
+                    ArgValue::String(s) => Ok(Flow { items: vec![FlowItem::Variable(intern(s))]}),
                     _ => Err(anyhow!("'{name}' must be flow, identifier or string"))
                 }
             }
@@ -234,38 +237,38 @@ impl ToolArgs {
         }
     }
 
-    pub fn optional_string(&self, key: &str) -> Result<Option<String>>
+    pub fn optional_string(&self, key: Symbol) -> Result<Option<String>>
     {
-        match self.keyword.get(key) {
+        match self.keyword.get(&key) {
             Some(ArgValue::String(s)) => Ok(Some(s.clone())),
-            Some(_) => Err(anyhow!("{key} must be a string")),
+            Some(_) => Err(anyhow!("{} must be a string", resolve(key))),
             None => Ok(None),
         }
     }
 
-    pub fn optional_integer(&self, key: &str) -> Result<Option<i64>>
+    pub fn optional_integer(&self, key: Symbol) -> Result<Option<i64>>
     {
-        match self.keyword.get(key) {
+        match self.keyword.get(&key) {
             Some(ArgValue::Integer(n)) => Ok(Some(*n)),
-            Some(_) => Err(anyhow!("{key} must be an integer")),
+            Some(_) => Err(anyhow!("{} must be an integer", resolve(key))),
             None => Ok(None),
         }
     }
 
-    pub fn optional_bool(&self, key: &str) -> Result<Option<bool>>
+    pub fn optional_bool(&self, key: Symbol) -> Result<Option<bool>>
     {
-        match self.keyword.get(key) {
+        match self.keyword.get(&key) {
             Some(ArgValue::Boolean(b)) => Ok(Some(*b)),
-            Some(_) => Err(anyhow!("{key} must be a boolean")),
+            Some(_) => Err(anyhow!("{} must be a boolean", resolve(key))),
             None => Ok(None),
         }
     }
 
-    pub fn check_named_args(&self, allowed: &[&str]) -> Result<()>
+    pub fn check_named_args(&self, allowed: &[Symbol]) -> Result<()>
     {
         for key in self.keyword.keys() {
-            if !allowed.contains(&key.as_str()) {
-                return Err(anyhow!("unexpected named argument '{key}'"));
+            if !allowed.contains(key) {
+                return Err(anyhow!("unexpected named argument '{}'", resolve(*key)));
             }
         }
 
@@ -276,28 +279,28 @@ impl ToolArgs {
 
 #[derive(Debug)]
 pub struct FlowRef {
-    pub port: String,
+    pub port: Symbol,
     pub flow: Flow,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct Values {
-    pub dfs: HashMap<String, DataFrame>,
+    pub dfs: HashMap<Symbol, DataFrame>,
 }
 
 impl Values {
     pub fn new(df: DataFrame) -> Self
     {
-        Values { dfs: HashMap::from([("*".into(), df)]) }
+        Values { dfs: HashMap::from([(star(), df)]) }
     }
 
     pub fn get_one(&self) -> Option<&DataFrame>
     {
         self.dfs.values().next()
     }
-    
-    pub fn set(&mut self, port: &str, df: DataFrame)
+
+    pub fn set(&mut self, port: Symbol, df: DataFrame)
     {
-        self.dfs.insert(port.into(), df);
+        self.dfs.insert(port, df);
     }
 }

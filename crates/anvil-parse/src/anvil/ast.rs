@@ -1,3 +1,5 @@
+use anvil_context::Symbol;
+
 #[derive(Debug)]
 pub struct Program {
     pub statements: Vec<Statement>,
@@ -12,7 +14,7 @@ pub struct Statement {
     pub branches: Option<Vec<Branch>>,
 
     /// Optional variable binding for the entire statement
-    pub variable: Option<String>,
+    pub variable: Option<Symbol>,
 }
 
 #[derive(Clone, Debug)]
@@ -24,13 +26,13 @@ pub struct Flow {
 #[derive(Clone, Debug)]
 pub enum FlowItem {
     Tool(ToolRef),
-    Variable(String),
+    Variable(Symbol),
 }
 
 #[derive(Debug)]
 pub struct Branch {
     /// Branch name (e.g. "true", "false", "joined")
-    pub name: String,
+    pub name: Symbol,
 
     /// Where this branch sends its data
     pub target: Target,
@@ -41,11 +43,11 @@ pub enum Target {
     /// Execute a flow, optionally binding its result
     Flow {
         flow: Flow,
-        variable: Option<String>,
+        variable: Option<Symbol>,
     },
 
     /// Directly bind to an existing variable
-    Variable(String),
+    Variable(Symbol),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -54,13 +56,13 @@ pub struct ToolId(pub usize);
 #[derive(Clone, Debug)]
 pub struct ToolRef {
     pub id: ToolId,
-    pub name: String,
+    pub name: Symbol,
     pub args: Vec<ToolArg>,
 }
 
 #[derive(Clone, Debug)]
 pub enum ToolArg {
-    Keyword { ident: String, value: ArgValue },
+    Keyword { ident: Symbol, value: ArgValue },
     Positional(ArgValue),
 }
 

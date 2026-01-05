@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use datafusion::prelude::SessionContext;
 
+use anvil_context::{resolve, Symbol};
 use crate::tools::{ArgValue, ToolArg, ToolRef, Values};
 
 pub async fn run(args: &SqlArgs, inputs: Option<Values>, ctx: &SessionContext) -> Result<Values>
@@ -12,7 +13,7 @@ pub async fn run(args: &SqlArgs, inputs: Option<Values>, ctx: &SessionContext) -
         let mut exprs = vec![];
         for (ident, sql) in &args.exprs {
             let expr = df.parse_sql_expr(sql)?;
-            exprs.push(expr.alias(ident));
+            exprs.push(expr.alias(resolve(*ident)));
         }
         df.clone().select(exprs)?
     } else {
@@ -25,7 +26,7 @@ pub async fn run(args: &SqlArgs, inputs: Option<Values>, ctx: &SessionContext) -
 #[derive(Debug)]
 pub struct SqlArgs {
     sql: Option<String>,
-    exprs: Vec<(String, String)>
+    exprs: Vec<(Symbol, String)>
 }
 
 impl TryFrom<&ToolRef> for SqlArgs {
@@ -45,7 +46,7 @@ impl TryFrom<&ToolRef> for SqlArgs {
                 }
                 ToolArg::Keyword { ident, value } => {
                     match value {
-                        ArgValue::String(s) => exprs.push((ident.clone(), s.clone())),
+                        ArgValue::String(s) => exprs.push((*ident, s.clone())),
                         _ => return Err(anyhow!("sql tool expression must be a string {value:?}"))
                     }
                 }

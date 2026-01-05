@@ -26,9 +26,7 @@ impl TryFrom<&ToolRef> for PrintArgs {
 
     fn try_from(tr: &ToolRef) -> Result<Self>
     {
-        let args = ToolArgs::new(&tr.args)?;
-        args.check_named_args(&["limit"])?;
-
+        let args  = ToolArgs::new(&tr.args)?;
         let limit = args.optional_positional_integer(0, "limit")?;
 
         Ok(PrintArgs { limit })

@@ -2,6 +2,8 @@ use anyhow::{anyhow, Result};
 use pest::Parser;
 use pest::iterators::Pair;
 
+use anvil_context::{intern, Symbol};
+
 use crate::anvil::ast::*;
 use crate::anvil::{AnvilParser, Rule};
 
@@ -108,7 +110,7 @@ impl ASTBuilder {
         let target = self.build_target(target)?;
 
         Ok(Branch {
-            name: name.as_str().to_string(),
+            name: intern(name.as_str()),
             target,
         })
     }
@@ -120,7 +122,7 @@ impl ASTBuilder {
 
         match inner.as_rule() {
             Rule::VARIABLE => {
-                Ok(Target::Variable(inner.as_str().to_string()))
+                Ok(Target::Variable(intern(inner.as_str())))
             }
             Rule::FLOW => {
                 let flow = self.build_flow(inner)?;
@@ -130,14 +132,14 @@ impl ASTBuilder {
         }
     }
 
-    fn build_variable_binding(&self, pair: Pair<Rule>) -> Result<String>
+    fn build_variable_binding(&self, pair: Pair<Rule>) -> Result<Symbol>
     {
         let var = pair
             .into_inner()
             .find(|p| p.as_rule() == Rule::VARIABLE)
             .ok_or_else(|| anyhow!("output binding missing variable"))?;
 
-        Ok(var.as_str().to_string())
+        Ok(intern(var.as_str()))
     }
 
     fn build_flow(&mut self, flow: Pair<Rule>) -> Result<Flow>
@@ -151,7 +153,7 @@ impl ASTBuilder {
                     items.push(FlowItem::Tool(self.build_tool_ref(flow_item)?))
                 }
                 Rule::VARIABLE => {
-                    items.push(FlowItem::Variable(flow_item.as_str().to_string()))
+                    items.push(FlowItem::Variable(intern(flow_item.as_str())))
                 }
                 _ => return Err(anyhow!("invalid flow item: {:?}", flow_item.as_rule()))
             }
@@ -163,7 +165,7 @@ impl ASTBuilder {
     fn build_tool_ref(&mut self, pair: Pair<Rule>) -> Result<ToolRef>
     {
         let mut inner = pair.into_inner();
-        let name = inner.next().unwrap().as_str().to_string();
+        let name = intern(inner.next().unwrap().as_str());
 
         let mut args = vec![];
         if let Some(tool_args) = inner.next() {
@@ -175,7 +177,7 @@ impl ASTBuilder {
                     }
                     Rule::KEYWORD => {
                         let mut inner = arg.into_inner();
-                        let ident = inner.next().unwrap().as_str().to_string();
+                        let ident = intern(inner.next().unwrap().as_str());
                         let value = self.build_arg_value(inner.next().unwrap())?;
                         args.push(ToolArg::Keyword { ident, value })
                     }

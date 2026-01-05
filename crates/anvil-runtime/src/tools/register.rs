@@ -5,6 +5,7 @@ use datafusion::execution::context::SessionContext;
 use datafusion::execution::options::ArrowReadOptions;
 use datafusion::prelude::{AvroReadOptions, CsvReadOptions, NdJsonReadOptions, ParquetReadOptions};
 
+use anvil_context::intern;
 use crate::tools::{ToolArgs, ToolRef, Values};
 
 pub async fn run(args: &RegisterArgs, ctx: &SessionContext) -> Result<Values>
@@ -48,7 +49,7 @@ impl TryFrom<&ToolRef> for RegisterArgs {
     fn try_from(tr: &ToolRef) -> Result<Self>
     {
         let args = ToolArgs::new(&tr.args)?;
-        args.check_named_args(&["format", "table"])?;
+        args.check_named_args(&[intern("format"), intern("table")])?;
 
         let path = args.required_positional_string(0, "input: path")?;
         let fpath = Path::new(&path);
@@ -56,7 +57,7 @@ impl TryFrom<&ToolRef> for RegisterArgs {
             return Err(anyhow!("input file not found: {}", fpath.display()));
         }
 
-        let format = args.optional_string("format")?;
+        let format = args.optional_string(intern("format"))?;
         let format = match format {
             Some(s) => {
                 match s.as_str() {
@@ -83,7 +84,8 @@ impl TryFrom<&ToolRef> for RegisterArgs {
             }
         };
 
-        let table = args.optional_string("table")?.unwrap_or("tbl".into());
+        let table = args.optional_string(intern("table"))?
+            .unwrap_or("tbl".into());
 
         Ok(RegisterArgs { format, path, table })
     }

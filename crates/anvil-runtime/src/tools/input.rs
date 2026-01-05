@@ -5,6 +5,7 @@ use datafusion::execution::context::SessionContext;
 use datafusion::execution::options::ArrowReadOptions;
 use datafusion::prelude::{AvroReadOptions, CsvReadOptions, NdJsonReadOptions, ParquetReadOptions};
 
+use anvil_context::intern;
 use crate::tools::{ToolArgs, ToolRef, Values};
 
 pub async fn run(args: &InputArgs, ctx: &SessionContext) -> Result<Values>
@@ -44,7 +45,7 @@ impl TryFrom<&ToolRef> for InputArgs {
     fn try_from(tr: &ToolRef) -> Result<Self>
     {
         let args = ToolArgs::new(&tr.args)?;
-        args.check_named_args(&["format"])?;
+        args.check_named_args(&[intern("format")])?;
 
         let path = args.required_positional_string(0, "input: path")?;
         let fpath = Path::new(&path);
@@ -52,7 +53,7 @@ impl TryFrom<&ToolRef> for InputArgs {
             return Err(anyhow!("input file not found: {}", fpath.display()));
         }
 
-        let format = args.optional_string("format")?;
+        let format = args.optional_string(intern("format"))?;
         let format = match format {
             Some(s) => {
                 match s.as_str() {

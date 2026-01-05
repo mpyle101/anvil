@@ -11,6 +11,7 @@ use petgraph::{
     visit::EdgeRef,
 };
 
+use anvil_context::{resolve, star};
 use crate::{ExecutionPlan, ExecNode};
 use crate::tools::{tool, Values};
 
@@ -63,7 +64,7 @@ impl Executor {
                         self.dfs.insert(*ix, values.clone());
                         values
                     } else {
-                        return Err(anyhow!("uninitialized variable: {name}"))
+                        return Err(anyhow!("uninitialized variable: {}", resolve(*name)))
                     }
                 }
             };
@@ -78,12 +79,12 @@ impl Executor {
                     for (p, df) in &outputs.dfs {
                         match node {
                             ExecNode::Tool(tool) => {
-                                if *p == e.port || p == "*" || e.port == "*" {
-                                    v.set(&e.port, df.clone())
+                                if *p == e.port || *p == star() || e.port == star() {
+                                    v.set(e.port, df.clone())
                                 }
                             }
                             ExecNode::Variable(_) => {
-                                v.set("*", df.clone())
+                                v.set(star(), df.clone())
                             }
                         }
                     }
