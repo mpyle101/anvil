@@ -22,5 +22,5 @@ pub mod tool;
 
 pub use tool::{FlowRef, Tool, ToolArgs, Values};
 
-pub use anvil_parse::anvil::ast::{ArgValue, Flow, FlowItem, ToolArg, ToolRef};
+pub use anvil_parse::anvil::ast::{ArgValue, Flow, FlowItem, ToolArg, ToolId, ToolRef};
 pub use anvil_parse::parse_expression;

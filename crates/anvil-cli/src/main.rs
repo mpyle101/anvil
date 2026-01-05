@@ -66,8 +66,8 @@ fn node_attrs(node: &ExecNode) -> String
     match node {
         ExecNode::Tool(tool) => {
             format!(
-                r#"label="{}", shape=box, style=filled, fillcolor=lightblue"#,
-                tool.name()
+                r#"label="{} ({})", shape=box, style=filled, fillcolor=lightblue"#,
+                tool.name(), tool.id()
             )
         }
         ExecNode::Variable(sym) => {

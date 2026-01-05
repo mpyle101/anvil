@@ -2,13 +2,13 @@ use anyhow::{anyhow, Result};
 
 use anvil_context::syms;
 use crate::eval_expression;
-use crate::tools::{parse_expression, ToolArgs, ToolRef, Values};
+use crate::tools::{parse_expression, ToolArgs, ToolId, ToolRef, Values};
 
 pub async fn run(args: &FilterArgs, inputs: Values) -> Result<Values>
 {
     let df = inputs.get_one()
         .cloned()
-        .ok_or_else(|| anyhow!("filter tool requires input"))?;
+        .ok_or_else(|| anyhow!("filter tool ({}) requires input", args.id))?;
 
     let ast  = parse_expression(args.predicate.as_str())?;
     let expr = eval_expression(&ast)?;
@@ -25,6 +25,7 @@ pub async fn run(args: &FilterArgs, inputs: Values) -> Result<Values>
 
 #[derive(Debug)]
 pub struct FilterArgs {
+    pub id: ToolId,
     predicate: String,
 }
 
@@ -38,6 +39,6 @@ impl TryFrom<&ToolRef> for FilterArgs {
 
         let predicate = args.required_positional_string(0, "path")?;
 
-        Ok(FilterArgs { predicate })
+        Ok(FilterArgs { id: tr.id, predicate })
     }
 }

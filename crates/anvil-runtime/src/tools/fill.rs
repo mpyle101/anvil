@@ -1,12 +1,12 @@
 use anyhow::{anyhow, Result};
 use datafusion::scalar::ScalarValue;
 
-use crate::tools::{ToolArgs, ToolRef, Values};
+use crate::tools::{ToolArgs, ToolId, ToolRef, Values};
 
 pub async fn run(args: &FillArgs, inputs: Values) -> Result<Values>
 {
     let df = inputs.get_one().cloned()
-        .ok_or_else(|| anyhow!("fill tool requires input"))?;
+        .ok_or_else(|| anyhow!("fill tool ({}) requires input", args.id))?;
 
     let cols = args.cols.as_ref()
         .map(|s| s.split(',').map(|c| c.to_owned()).collect())
@@ -18,6 +18,7 @@ pub async fn run(args: &FillArgs, inputs: Values) -> Result<Values>
 
 #[derive(Debug)]
 pub struct FillArgs {
+    pub id: ToolId,
     value: i64,
     cols: Option<String>,
 }
@@ -33,6 +34,6 @@ impl TryFrom<&ToolRef> for FillArgs {
         let value = args.required_positional_integer(0, "value")?;
         let cols  = args.optional_positional_string(1, "cols")?;
 
-        Ok(FillArgs { value, cols })
+        Ok(FillArgs { id: tr.id, value, cols })
     }
 }

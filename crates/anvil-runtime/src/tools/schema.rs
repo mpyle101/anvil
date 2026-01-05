@@ -4,12 +4,12 @@ use anyhow::{anyhow, Result};
 use datafusion::prelude::*;
 use datafusion::common::arrow::array::{BooleanArray, UInt64Array, StringArray};
 
-use crate::tools::Values;
+use crate::tools::{ToolId, ToolRef, Values};
 
-pub async fn run(inputs: Values) -> Result<Values>
+pub async fn run(args: &SchemaArgs, inputs: Values) -> Result<Values>
 {
     let df = inputs.get_one().cloned()
-        .ok_or_else(|| anyhow!("schema tool requires input"))?;
+        .ok_or_else(|| anyhow!("schema tool ({}) requires input", args.id))?;
 
     let mut names = vec![];
     let mut sizes = vec![];
@@ -31,4 +31,18 @@ pub async fn run(inputs: Values) -> Result<Values>
     ])?;
 
     Ok(Values::new(df))
+}
+
+#[derive(Debug)]
+pub struct SchemaArgs {
+    pub id: ToolId,
+}
+
+impl TryFrom<&ToolRef> for SchemaArgs {
+    type Error = anyhow::Error;
+
+    fn try_from(tr: &ToolRef) -> Result<Self>
+    {
+        Ok(SchemaArgs { id: tr.id, })
+    }
 }

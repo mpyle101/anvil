@@ -1,11 +1,11 @@
 use anyhow::{anyhow, Result};
 
-use crate::tools::{ToolArgs, ToolRef, Values};
+use crate::tools::{ToolArgs, ToolId, ToolRef, Values};
 
 pub async fn run(args: &PrintArgs, inputs: Values) -> Result<Values>
 {
     let df = inputs.get_one().cloned()
-        .ok_or_else(|| anyhow!("print tool requires input"))?;
+        .ok_or_else(|| anyhow!("print tool ({}) requires input", args.id))?;
 
     if let Some(limit) = args.limit {
         df.clone().show_limit(limit as usize).await?;
@@ -18,6 +18,7 @@ pub async fn run(args: &PrintArgs, inputs: Values) -> Result<Values>
 
 #[derive(Debug)]
 pub struct PrintArgs {
+    pub id: ToolId,
     limit: Option<i64>,
 }
 
@@ -29,6 +30,6 @@ impl TryFrom<&ToolRef> for PrintArgs {
         let args  = ToolArgs::new(&tr.args)?;
         let limit = args.optional_positional_integer(0, "limit")?;
 
-        Ok(PrintArgs { limit })
+        Ok(PrintArgs { id: tr.id, limit })
     }
 }

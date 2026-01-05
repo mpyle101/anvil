@@ -10,8 +10,8 @@ use crate::tools::*;
 #[derive(Debug)]
 pub enum Tool {
     Count(count::CountArgs),
-    Describe,
-    Distinct,
+    Describe(describe::DescribeArgs),
+    Distinct(distinct::DistinctArgs),
     Drop(drop::DropArgs),
     Fill(fill::FillArgs),
     Filter(filter::FilterArgs),
@@ -23,7 +23,7 @@ pub enum Tool {
     Print(print::PrintArgs),
     Project(project::ProjectArgs),
     Register(register::RegisterArgs),
-    Schema,
+    Schema(schema::SchemaArgs),
     Select(select::SelectArgs),
     Sort(sort::SortArgs),
     Sql(sql::SqlArgs),
@@ -40,8 +40,8 @@ impl TryFrom<&ToolRef> for Tool {
         let name = tr.name;
         let tool = match tool_types().get(&tr.name) {
             Some(Count)     => Tool::Count(tr.try_into()?),
-            Some(Describe)  => Tool::Describe,
-            Some(Distinct)  => Tool::Distinct,
+            Some(Describe)  => Tool::Describe(tr.try_into()?),
+            Some(Distinct)  => Tool::Distinct(tr.try_into()?),
             Some(Drop)      => Tool::Drop(tr.try_into()?),
             Some(Fill)      => Tool::Fill(tr.try_into()?),
             Some(Filter)    => Tool::Filter(tr.try_into()?),
@@ -53,7 +53,7 @@ impl TryFrom<&ToolRef> for Tool {
             Some(Print)     => Tool::Print(tr.try_into()?),
             Some(Project)   => Tool::Project(tr.try_into()?),
             Some(Register)  => Tool::Register(tr.try_into()?),
-            Some(Schema)    => Tool::Schema,
+            Some(Schema)    => Tool::Schema(tr.try_into()?),
             Some(Select)    => Tool::Select(tr.try_into()?),
             Some(Sort)      => Tool::Sort(tr.try_into()?),
             Some(Sql)       => Tool::Sql(tr.try_into()?),
@@ -87,22 +87,22 @@ impl Tool {
 
             let inputs = inputs.unwrap();
             match self {
-                Tool::Count(args)    => count::run(args, inputs, ctx).await?,
-                Tool::Describe       => describe::run(inputs).await?,
-                Tool::Distinct       => distinct::run(inputs).await?,
-                Tool::Drop(args)     => drop::run(args, inputs).await?,
-                Tool::Fill(args)     => fill::run(args, inputs).await?,
-                Tool::Filter(args)   => filter::run(args, inputs).await?,
-                Tool::Intersect(_)   => intersect::run(inputs).await?,
-                Tool::Join(args)     => join::run(args, inputs).await?,
-                Tool::Limit(args)    => limit::run(args, inputs).await?,
-                Tool::Output(args)   => output::run(args, inputs).await?,
-                Tool::Print(args)    => print::run(args, inputs).await?,
-                Tool::Project(args)  => project::run(args, inputs, ctx).await?,
-                Tool::Schema         => schema::run(inputs).await?,
-                Tool::Select(args)   => select::run(args, inputs).await?,
-                Tool::Sort(args)     => sort::run(args, inputs).await?,
-                Tool::Union(_)       => union::run(inputs).await?,
+                Tool::Count(args)     => count::run(args, inputs, ctx).await?,
+                Tool::Describe(args)  => describe::run(args, inputs).await?,
+                Tool::Distinct(args)  => distinct::run(args, inputs).await?,
+                Tool::Drop(args)      => drop::run(args, inputs).await?,
+                Tool::Fill(args)      => fill::run(args, inputs).await?,
+                Tool::Filter(args)    => filter::run(args, inputs).await?,
+                Tool::Intersect(args) => intersect::run(args, inputs).await?,
+                Tool::Join(args)      => join::run(args, inputs).await?,
+                Tool::Limit(args)     => limit::run(args, inputs).await?,
+                Tool::Output(args)    => output::run(args, inputs).await?,
+                Tool::Print(args)     => print::run(args, inputs).await?,
+                Tool::Project(args)   => project::run(args, inputs, ctx).await?,
+                Tool::Schema(args)    => schema::run(args, inputs).await?,
+                Tool::Select(args)    => select::run(args, inputs).await?,
+                Tool::Sort(args)      => sort::run(args, inputs).await?,
+                Tool::Union(args)     => union::run(args, inputs).await?,
                 _ => unreachable!("{} is not a sink tool", self.name())
             }
         };
@@ -114,8 +114,8 @@ impl Tool {
     {
         match self {
             Tool::Count(_)     => "count",
-            Tool::Describe     => "describe",
-            Tool::Distinct     => "distinct",
+            Tool::Describe(_)  => "describe",
+            Tool::Distinct(_)  => "distinct",
             Tool::Drop(_)      => "drop",
             Tool::Fill(_)      => "fill",
             Tool::Filter(_)    => "filter",
@@ -127,11 +127,36 @@ impl Tool {
             Tool::Print(_)     => "print",
             Tool::Project(_)   => "project",
             Tool::Register(_)  => "register",
-            Tool::Schema       => "schema",
+            Tool::Schema(_)    => "schema",
             Tool::Select(_)    => "select",
             Tool::Sort(_)      => "sort",
             Tool::Sql(_)       => "sql",
             Tool::Union(_)     => "union",
+        }
+    }
+
+    pub fn id(&self) -> ToolId
+    {
+        match self {
+            Tool::Count(args)     => args.id,
+            Tool::Describe(args)  => args.id,
+            Tool::Distinct(args)  => args.id,
+            Tool::Drop(args)      => args.id,
+            Tool::Fill(args)      => args.id,
+            Tool::Filter(args)    => args.id,
+            Tool::Input(args)     => args.id,
+            Tool::Intersect(args) => args.id,
+            Tool::Join(args)      => args.id,
+            Tool::Limit(args)     => args.id,
+            Tool::Output(args)    => args.id,
+            Tool::Print(args)     => args.id,
+            Tool::Project(args)   => args.id,
+            Tool::Register(args)  => args.id,
+            Tool::Schema(args)    => args.id,
+            Tool::Select(args)    => args.id,
+            Tool::Sort(args)      => args.id,
+            Tool::Sql(args)       => args.id,
+            Tool::Union(args)     => args.id,
         }
     }
 

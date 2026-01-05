@@ -6,7 +6,7 @@ use datafusion::execution::options::ArrowReadOptions;
 use datafusion::prelude::{AvroReadOptions, CsvReadOptions, NdJsonReadOptions, ParquetReadOptions};
 
 use anvil_context::intern;
-use crate::tools::{ToolArgs, ToolRef, Values};
+use crate::tools::{ToolArgs, ToolId, ToolRef, Values};
 
 pub async fn run(args: &InputArgs, ctx: &SessionContext) -> Result<Values>
 {
@@ -35,6 +35,7 @@ enum InputFormat {
 
 #[derive(Debug)]
 pub struct InputArgs {
+    pub id: ToolId,
     format: InputFormat,
     path: String,
 }
@@ -81,6 +82,6 @@ impl TryFrom<&ToolRef> for InputArgs {
             }
         };
 
-        Ok(InputArgs { format, path })
+        Ok(InputArgs { id: tr.id, format, path })
     }
 }

@@ -1,3 +1,5 @@
+use std::fmt;
+
 use anvil_context::Symbol;
 
 #[derive(Debug)]
@@ -52,6 +54,13 @@ pub enum Target {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ToolId(pub usize);
+
+impl fmt::Display for ToolId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
+    {
+        write!(f, "{}", self.0)
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct ToolRef {

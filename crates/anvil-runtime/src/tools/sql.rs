@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use datafusion::prelude::SessionContext;
 
 use anvil_context::{resolve, Symbol};
-use crate::tools::{ArgValue, ToolArg, ToolRef, Values};
+use crate::tools::{ArgValue, ToolArg, ToolId, ToolRef, Values};
 
 pub async fn run(args: &SqlArgs, inputs: Option<Values>, ctx: &SessionContext) -> Result<Values>
 {
@@ -17,7 +17,7 @@ pub async fn run(args: &SqlArgs, inputs: Option<Values>, ctx: &SessionContext) -
         }
         df.clone().select(exprs)?
     } else {
-        return Err(anyhow!("sql tool requires SQL string or input"))
+        return Err(anyhow!("sql tool ({}) requires SQL string or input", args.id))
     };
 
     Ok(Values::new(df))
@@ -25,6 +25,7 @@ pub async fn run(args: &SqlArgs, inputs: Option<Values>, ctx: &SessionContext) -
 
 #[derive(Debug)]
 pub struct SqlArgs {
+    pub id: ToolId,
     sql: Option<String>,
     exprs: Vec<(Symbol, String)>
 }
@@ -53,6 +54,6 @@ impl TryFrom<&ToolRef> for SqlArgs {
             }
         }
 
-        Ok(SqlArgs { sql, exprs })
+        Ok(SqlArgs { id: tr.id, sql, exprs })
     }
 }

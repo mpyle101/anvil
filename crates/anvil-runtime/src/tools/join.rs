@@ -2,14 +2,14 @@ use anyhow::{anyhow, Result};
 use datafusion::prelude::JoinType;
 
 use anvil_context::syms;
-use crate::tools::{Flow, FlowRef, ToolArgs, ToolRef, Values};
+use crate::tools::{Flow, FlowRef, ToolArgs, ToolId, ToolRef, Values};
 
 pub async fn run(args: &JoinArgs, inputs: Values) -> Result<Values>
 {
     let df_lt = inputs.dfs.get(&syms().left).cloned()
-        .ok_or_else(|| anyhow!("join tool requires left port"))?;
+        .ok_or_else(|| anyhow!("join tool ({}) requires left port", args.id))?;
     let df_rt = inputs.dfs.get(&syms().right).cloned()
-        .ok_or_else(|| anyhow!("join tool requires right port"))?;
+        .ok_or_else(|| anyhow!("join tool ({}) requires right port", args.id))?;
 
     let cols_lt = args.cols_lt.split(',').collect::<Vec<_>>();
     let cols_rt = args.cols_rt.split(',').collect::<Vec<_>>();
@@ -28,6 +28,7 @@ pub fn flows(args: &JoinArgs) -> Vec<FlowRef>
 
 #[derive(Debug)]
 pub struct JoinArgs {
+    pub id: ToolId,
     cols_lt: String,
     cols_rt: String,
     flow_lt: Flow,
@@ -65,6 +66,7 @@ impl TryFrom<&ToolRef> for JoinArgs {
 
 
         Ok(JoinArgs {
+            id: tr.id,
             cols_lt,
             cols_rt,
             flow_lt,

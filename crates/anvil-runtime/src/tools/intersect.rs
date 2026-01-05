@@ -1,14 +1,14 @@
 use anyhow::{anyhow, Result};
 
 use anvil_context::syms;
-use crate::tools::{Flow, FlowRef, ToolArgs, ToolRef, Values};
+use crate::tools::{Flow, FlowRef, ToolArgs, ToolId, ToolRef, Values};
 
-pub async fn run(inputs: Values) -> Result<Values>
+pub async fn run(args: &IntersectArgs, inputs: Values) -> Result<Values>
 {
     let df_lt = inputs.dfs.get(&syms().left).cloned()
-        .ok_or_else(|| anyhow!("intersect tool requires left port"))?;
+        .ok_or_else(|| anyhow!("intersect tool ({}) requires left port", args.id))?;
     let df_rt = inputs.dfs.get(&syms().right).cloned()
-        .ok_or_else(|| anyhow!("intersect tool requires right port"))?;
+        .ok_or_else(|| anyhow!("intersect tool ({}) requires right port", args.id))?;
 
     let df = df_lt.intersect(df_rt)?;
 
@@ -25,6 +25,7 @@ pub fn flows(args: &IntersectArgs) -> Vec<FlowRef>
 
 #[derive(Debug)]
 pub struct IntersectArgs {
+    pub id: ToolId,
     flow_lt: Flow,
     flow_rt: Flow,
 }
@@ -38,6 +39,6 @@ impl TryFrom<&ToolRef> for IntersectArgs {
         let flow_lt = args.required_positional_flow(0, "left")?;
         let flow_rt = args.required_positional_flow(1, "right")?;
 
-        Ok(IntersectArgs { flow_lt, flow_rt })
+        Ok(IntersectArgs { id: tr.id, flow_lt, flow_rt })
     }
 }

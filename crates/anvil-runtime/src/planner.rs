@@ -4,8 +4,9 @@ use std::fmt;
 
 use anyhow::{anyhow, Result};
 use petgraph::graph::{Graph, NodeIndex};
+use string_interner::symbol::Symbol as Sym;
 
-use anvil_context::{intern, resolve, syms, Symbol};
+use anvil_context::{resolve, syms, Symbol};
 use anvil_parse::anvil::ast::*;
 use crate::tools::Tool;
 
@@ -147,7 +148,7 @@ pub enum ExecNode {
 impl fmt::Display for ExecNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
     {
-        write!(f, "{}", self.name())
+        write!(f, "{} ({})", self.name(), self.id())
     }
 }
 
@@ -161,9 +162,17 @@ impl ExecNode {
         }
     }
 
-    pub fn name(&self) -> &str
+    pub fn id(&self) -> ToolId
     {
         match self {
+            ExecNode::Tool(tool)    => tool.id(),
+            ExecNode::Variable(sym) => ToolId(sym.to_usize()),
+        }
+    }
+
+    pub fn name(&self) -> &str
+    {
+       match self {
             ExecNode::Tool(tool)    => tool.name(),
             ExecNode::Variable(sym) => resolve(*sym),
         }
@@ -192,6 +201,6 @@ impl ExecEdge {
 impl Default for ExecEdge {
     fn default() -> Self
     {
-        ExecEdge { port: intern("*") }
+        ExecEdge { port: syms().default }
     }
 }
