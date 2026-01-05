@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::{anyhow, Result};
 use datafusion::prelude::{DataFrame, SessionContext};
 
-use anvil_context::{intern, resolve, star, tool_types, Symbol, ToolType};
+use anvil_context::{intern, resolve, syms, tool_types, Symbol, ToolType};
 use crate::tools::*;
 
 
@@ -145,15 +145,6 @@ impl Tool {
         }
     }
 
-    pub fn outputs(&self) -> Vec<&str>
-    {
-        if let Tool::Filter(_) = self {
-            filter::outputs()
-        } else {
-            vec!["*"]
-        }
-    }
-
     pub fn is_source(&self) -> bool
     {
         matches!(self, Tool::Input(_) | Tool::Register(_))
@@ -291,7 +282,7 @@ pub struct Values {
 impl Values {
     pub fn new(df: DataFrame) -> Self
     {
-        Values { dfs: HashMap::from([(star(), df)]) }
+        Values { dfs: HashMap::from([(syms().default, df)]) }
     }
 
     pub fn get_one(&self) -> Option<&DataFrame>

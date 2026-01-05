@@ -1,13 +1,13 @@
 use anyhow::{anyhow, Result};
 
-use anvil_context::intern;
+use anvil_context::syms;
 use crate::tools::{Flow, FlowRef, ToolArgs, ToolRef, Values};
 
 pub async fn run(inputs: Values) -> Result<Values>
 {
-    let df_lt = inputs.dfs.get(&intern("left")).cloned()
+    let df_lt = inputs.dfs.get(&syms().left).cloned()
         .ok_or_else(|| anyhow!("intersect tool requires left port"))?;
-    let df_rt = inputs.dfs.get(&intern("right")).cloned()
+    let df_rt = inputs.dfs.get(&syms().right).cloned()
         .ok_or_else(|| anyhow!("intersect tool requires right port"))?;
 
     let df = df_lt.intersect(df_rt)?;
@@ -18,8 +18,8 @@ pub async fn run(inputs: Values) -> Result<Values>
 pub fn flows(args: &IntersectArgs) -> Vec<FlowRef>
 {
     vec![
-        FlowRef { port: intern("left"),  flow: args.flow_lt.clone() },
-        FlowRef { port: intern("right"), flow: args.flow_rt.clone() }
+        FlowRef { port: syms().left,  flow: args.flow_lt.clone() },
+        FlowRef { port: syms().right, flow: args.flow_rt.clone() }
     ]
 }
 

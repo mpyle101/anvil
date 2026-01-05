@@ -4,7 +4,7 @@ use anyhow::Result;
 use clap::Parser;
 use petgraph::dot::{Config, Dot};
 
-use anvil_context::{intern, resolve, star};
+use anvil_context::{intern, resolve, syms};
 use anvil_parse::ASTBuilder;
 use anvil_runtime::{run_repl, Executor, ExecNode, ExecEdge, Planner};
 
@@ -81,7 +81,7 @@ fn node_attrs(node: &ExecNode) -> String
 
 fn edge_attrs(edge: &ExecEdge) -> String
 {
-    if edge.port == star() {
+    if edge.port == syms().default {
         r#"label="""#.to_string()
     } else if edge.port == intern("true") {
         r#"label="true", color=green"#.to_string()

@@ -5,7 +5,7 @@ use std::fmt;
 use anyhow::{anyhow, Result};
 use petgraph::graph::{Graph, NodeIndex};
 
-use anvil_context::{intern, resolve, star, Symbol};
+use anvil_context::{intern, resolve, syms, Symbol};
 use anvil_parse::anvil::ast::*;
 use crate::tools::Tool;
 
@@ -31,7 +31,7 @@ impl Planner {
 
     pub fn build_statement(&mut self, stmt: Statement) -> Result<&ExecutionPlan>
     {
-        let ix = self.build_flow(&stmt.flow, star(), None)?;
+        let ix = self.build_flow(&stmt.flow, syms().default, None)?;
 
         if let Some(name) = &stmt.variable {
             let vx = self.add_var_node(name)?;
@@ -63,7 +63,7 @@ impl Planner {
 
                     let mut fr = vec![];
                     for f in tool.expand() {
-                        let ix = self.build_flow(&f.flow, star(), None)?;
+                        let ix = self.build_flow(&f.flow, syms().default, None)?;
                         fr.push((f.port, ix));
                     }
 
@@ -75,7 +75,7 @@ impl Planner {
                     for (p, src) in fr {
                         self.plan.try_add_edge(src, ix, ExecEdge::new(p))?;
                     }
-                    Some((star(), ix))
+                    Some((syms().default, ix))
                 }
                 FlowItem::Variable(name) => {
                     let ix = self.vars.get(name)
@@ -84,7 +84,7 @@ impl Planner {
                     if let Some((p, src)) = current {
                         self.plan.try_add_edge(src, ix, ExecEdge::new(p))?;
                     }
-                    Some((star(), ix))
+                    Some((syms().default, ix))
                 }
             }
         }

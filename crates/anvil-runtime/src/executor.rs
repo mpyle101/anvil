@@ -11,7 +11,7 @@ use petgraph::{
     visit::EdgeRef,
 };
 
-use anvil_context::{resolve, star};
+use anvil_context::{resolve, syms};
 use crate::{ExecutionPlan, ExecNode};
 use crate::tools::{tool, Values};
 
@@ -75,16 +75,17 @@ impl Executor {
                     let t = edge.target();
                     let node = &plan[t];
 
+                    let default = syms().default;
                     let mut v = self.dfs.entry(t).or_default();
                     for (p, df) in &outputs.dfs {
                         match node {
                             ExecNode::Tool(tool) => {
-                                if *p == e.port || *p == star() || e.port == star() {
+                                if *p == e.port || *p == default || e.port == default {
                                     v.set(e.port, df.clone())
                                 }
                             }
                             ExecNode::Variable(_) => {
-                                v.set(star(), df.clone())
+                                v.set(default, df.clone())
                             }
                         }
                     }

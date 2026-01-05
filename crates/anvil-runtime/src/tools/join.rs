@@ -1,14 +1,14 @@
 use anyhow::{anyhow, Result};
 use datafusion::prelude::JoinType;
 
-use anvil_context::intern;
+use anvil_context::syms;
 use crate::tools::{Flow, FlowRef, ToolArgs, ToolRef, Values};
 
 pub async fn run(args: &JoinArgs, inputs: Values) -> Result<Values>
 {
-    let df_lt = inputs.dfs.get(&intern("left")).cloned()
+    let df_lt = inputs.dfs.get(&syms().left).cloned()
         .ok_or_else(|| anyhow!("join tool requires left port"))?;
-    let df_rt = inputs.dfs.get(&intern("right")).cloned()
+    let df_rt = inputs.dfs.get(&syms().right).cloned()
         .ok_or_else(|| anyhow!("join tool requires right port"))?;
 
     let cols_lt = args.cols_lt.split(',').collect::<Vec<_>>();
@@ -21,8 +21,8 @@ pub async fn run(args: &JoinArgs, inputs: Values) -> Result<Values>
 pub fn flows(args: &JoinArgs) -> Vec<FlowRef>
 {
     vec![
-        FlowRef { port: intern("left"),  flow: args.flow_lt.clone() },
-        FlowRef { port: intern("right"), flow: args.flow_rt.clone() }
+        FlowRef { port: syms().left,  flow: args.flow_lt.clone() },
+        FlowRef { port: syms().right, flow: args.flow_rt.clone() }
     ]
 }
 
@@ -41,19 +41,19 @@ impl TryFrom<&ToolRef> for JoinArgs {
     fn try_from(tr: &ToolRef) -> Result<Self>
     {
         let args = ToolArgs::new(&tr.args)?;
-        args.check_named_args(&[intern("type"), intern("cols_lt"), intern("cols_rt")])?;
+        args.check_named_args(&[syms().join_type, syms().cols_lt, syms().cols_rt])?;
 
         let flow_lt = args.required_positional_flow(0, "left")?;
         let flow_rt = args.required_positional_flow(1, "right")?;
 
-        let cols_lt = args.optional_string(intern("cols_lt"))?.ok_or_else(
+        let cols_lt = args.optional_string(syms().cols_lt)?.ok_or_else(
             || anyhow!("join 'cols_lt' argument does not exist")
         )?;
-        let cols_rt = args.optional_string(intern("cols_rt"))?.ok_or_else(
+        let cols_rt = args.optional_string(syms().cols_rt)?.ok_or_else(
             || anyhow!("join 'cols_tr' argument does not exist")
         )?;
 
-        let join_type = args.optional_string(intern("type"))?;
+        let join_type = args.optional_string(syms().join_type)?;
         let join_type = join_type.unwrap_or("inner".into());
         let join_type = match join_type.as_str() {
             "inner" => JoinType::Inner,
