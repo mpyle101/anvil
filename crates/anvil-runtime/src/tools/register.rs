@@ -8,7 +8,7 @@ use datafusion::prelude::{AvroReadOptions, CsvReadOptions, NdJsonReadOptions, Pa
 use anvil_context::intern;
 use crate::tools::{ToolArgs, ToolId, ToolRef, Values};
 
-pub async fn run(args: &RegisterArgs, ctx: &SessionContext) -> Result<Values>
+pub async fn run(_id: &ToolId, args: &RegisterArgs, ctx: &SessionContext) -> Result<Values>
 {
     use Format::*;
 
@@ -38,7 +38,6 @@ enum Format {
 
 #[derive(Debug)]
 pub struct RegisterArgs {
-    pub id: ToolId,
     format: Format,
     path: String,
     table: String,
@@ -88,6 +87,6 @@ impl TryFrom<&ToolRef> for RegisterArgs {
         let table = args.optional_string(intern("table"))?
             .unwrap_or("tbl".into());
 
-        Ok(RegisterArgs { id: tr.id, format, path, table })
+        Ok(RegisterArgs { format, path, table })
     }
 }

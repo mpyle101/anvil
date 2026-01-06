@@ -1,27 +1,13 @@
 use anyhow::{anyhow, Result};
 
-use crate::tools::{ToolId, ToolRef, Values};
+use crate::tools::{ToolId, Values};
 
-pub async fn run(args: &DistinctArgs, inputs: Values) -> Result<Values>
+pub async fn run(id: &ToolId, inputs: Values) -> Result<Values>
 {
     let df = inputs.get_one().cloned()
-        .ok_or_else(|| anyhow!("distinct tool ({}) requires input", args.id))?;
+        .ok_or_else(|| anyhow!("distinct tool ({id}) requires input"))?;
 
     let df = df.distinct()?;
 
     Ok(Values::new(df))
-}
-
-#[derive(Debug)]
-pub struct DistinctArgs {
-    pub id: ToolId,
-}
-
-impl TryFrom<&ToolRef> for DistinctArgs {
-    type Error = anyhow::Error;
-
-    fn try_from(tr: &ToolRef) -> Result<Self>
-    {
-        Ok(DistinctArgs { id: tr.id, })
-    }
 }

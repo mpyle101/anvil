@@ -7,12 +7,12 @@ use datafusion::logical_expr::logical_plan::dml::InsertOp;
 use anvil_context::intern;
 use crate::tools::{ToolArgs, ToolId, ToolRef, Values};
 
-pub async fn run(args: &OutputArgs, inputs: Values) -> Result<Values>
+pub async fn run(id: &ToolId, args: &OutputArgs, inputs: Values) -> Result<Values>
 {
     use OutputFormat::*;
 
     let df = inputs.get_one().cloned()
-        .ok_or_else(|| anyhow!("output tool ({}) requires input", args.id))?;
+        .ok_or_else(|| anyhow!("output tool ({id}) requires input"))?;
 
     let options = DataFrameWriteOptions::new()
         .with_insert_operation(args.mode)
@@ -38,7 +38,6 @@ enum OutputFormat {
 
 #[derive(Debug)]
 pub struct OutputArgs {
-    pub id: ToolId,
     format: OutputFormat,
     mode: InsertOp,
     path: String,
@@ -92,6 +91,6 @@ impl TryFrom<&ToolRef> for OutputArgs {
             }
         };
 
-        Ok(OutputArgs { id: tr.id, format, mode, path, single })
+        Ok(OutputArgs { format, mode, path, single })
     }
 }

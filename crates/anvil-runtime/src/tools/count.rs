@@ -5,10 +5,10 @@ use datafusion::execution::context::SessionContext;
 use anvil_context::intern;
 use crate::tools::{ToolArgs, ToolId, ToolRef, Values};
 
-pub async fn run(args: &CountArgs, inputs: Values, ctx: &SessionContext) -> Result<Values>
+pub async fn run(id: &ToolId, args: &CountArgs, inputs: Values, ctx: &SessionContext) -> Result<Values>
 {
     let df = inputs.get_one()
-        .ok_or_else(|| anyhow!("count tool ({}) requires input", args.id))?;
+        .ok_or_else(|| anyhow!("count tool ({id}) requires input"))?;
 
     let n = df.clone().count().await? as i64;
     let df = ctx.read_empty()?
@@ -19,7 +19,6 @@ pub async fn run(args: &CountArgs, inputs: Values, ctx: &SessionContext) -> Resu
 
 #[derive(Debug)]
 pub struct CountArgs {
-    pub id: ToolId,
     col: String,
 }
 
@@ -33,6 +32,6 @@ impl TryFrom<&ToolRef> for CountArgs {
 
         let col = args.optional_positional_string(0, "col")?.unwrap_or("count".into());
 
-        Ok(CountArgs { id: tr.id, col })
+        Ok(CountArgs { col })
     }
 }

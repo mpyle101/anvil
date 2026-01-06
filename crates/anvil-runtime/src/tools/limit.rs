@@ -3,10 +3,10 @@ use anyhow::{anyhow, Result};
 use anvil_context::intern;
 use crate::tools::{ToolArgs, ToolId, ToolRef, Values};
 
-pub async fn run(args: &LimitArgs, inputs: Values) -> Result<Values>
+pub async fn run(id: &ToolId, args: &LimitArgs, inputs: Values) -> Result<Values>
 {
     let df = inputs.get_one().cloned()
-        .ok_or_else(|| anyhow!("limit tool ({}) requires input", args.id))?;
+        .ok_or_else(|| anyhow!("limit tool ({id}) requires input"))?;
     let df = df.limit(args.skip, Some(args.count))?;
 
     Ok(Values::new(df))
@@ -14,7 +14,6 @@ pub async fn run(args: &LimitArgs, inputs: Values) -> Result<Values>
 
 #[derive(Debug)]
 pub struct LimitArgs {
-    pub id: ToolId,
     count: usize,
     skip: usize,
 }
@@ -30,6 +29,6 @@ impl TryFrom<&ToolRef> for LimitArgs {
         let count = args.required_positional_integer(0, "count")? as usize;
         let skip  = args.optional_integer(intern("skip"))?.unwrap_or(0) as usize;
 
-        Ok(LimitArgs { id: tr.id, count, skip })
+        Ok(LimitArgs { count, skip })
     }
 }

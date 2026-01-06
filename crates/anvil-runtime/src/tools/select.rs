@@ -3,10 +3,10 @@ use datafusion::prelude::{col, Expr};
 
 use crate::tools::{ToolArgs, ToolId, ToolRef, Values};
 
-pub async fn run(args: &SelectArgs, inputs: Values) -> Result<Values>
+pub async fn run(id: &ToolId, args: &SelectArgs, inputs: Values) -> Result<Values>
 {
     let df = inputs.get_one().cloned()
-        .ok_or_else(|| anyhow!("select tool ({}) requires input", args.id))?;
+        .ok_or_else(|| anyhow!("select tool ({id}) requires input"))?;
     let df = df.select(args.exprs.clone())?;
 
     Ok(Values::new(df))
@@ -14,7 +14,6 @@ pub async fn run(args: &SelectArgs, inputs: Values) -> Result<Values>
 
 #[derive(Debug)]
 pub struct SelectArgs {
-    pub id: ToolId,
     exprs: Vec<Expr>,
 }
 
@@ -36,6 +35,6 @@ impl TryFrom<&ToolRef> for SelectArgs {
             })
             .collect::<Vec<_>>();
 
-        Ok(SelectArgs { id: tr.id, exprs })
+        Ok(SelectArgs { exprs })
     }
 }

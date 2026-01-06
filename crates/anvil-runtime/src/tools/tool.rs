@@ -9,25 +9,25 @@ use crate::tools::*;
 
 #[derive(Debug)]
 pub enum Tool {
-    Count(count::CountArgs),
-    Describe(describe::DescribeArgs),
-    Distinct(distinct::DistinctArgs),
-    Drop(drop::DropArgs),
-    Fill(fill::FillArgs),
-    Filter(filter::FilterArgs),
-    Input(input::InputArgs),
-    Intersect(intersect::IntersectArgs),
-    Join(join::JoinArgs),
-    Limit(limit::LimitArgs),
-    Output(output::OutputArgs),
-    Print(print::PrintArgs),
-    Project(project::ProjectArgs),
-    Register(register::RegisterArgs),
-    Schema(schema::SchemaArgs),
-    Select(select::SelectArgs),
-    Sort(sort::SortArgs),
-    Sql(sql::SqlArgs),
-    Union(union::UnionArgs),
+    Count((ToolId, count::CountArgs)),
+    Describe(ToolId),
+    Distinct(ToolId),
+    Drop((ToolId, drop::DropArgs)),
+    Fill((ToolId, fill::FillArgs)),
+    Filter((ToolId, filter::FilterArgs)),
+    Input((ToolId, input::InputArgs)),
+    Intersect((ToolId, intersect::IntersectArgs)),
+    Join((ToolId, join::JoinArgs)),
+    Limit((ToolId, limit::LimitArgs)),
+    Output((ToolId, output::OutputArgs)),
+    Print((ToolId, print::PrintArgs)),
+    Project((ToolId, project::ProjectArgs)),
+    Register((ToolId, register::RegisterArgs)),
+    Schema(ToolId),
+    Select((ToolId, select::SelectArgs)),
+    Sort((ToolId, sort::SortArgs)),
+    Sql((ToolId, sql::SqlArgs)),
+    Union((ToolId, union::UnionArgs)),
 }
 
 impl TryFrom<&ToolRef> for Tool {
@@ -39,25 +39,25 @@ impl TryFrom<&ToolRef> for Tool {
 
         let name = tr.name;
         let tool = match tool_types().get(&tr.name) {
-            Some(Count)     => Tool::Count(tr.try_into()?),
-            Some(Describe)  => Tool::Describe(tr.try_into()?),
-            Some(Distinct)  => Tool::Distinct(tr.try_into()?),
-            Some(Drop)      => Tool::Drop(tr.try_into()?),
-            Some(Fill)      => Tool::Fill(tr.try_into()?),
-            Some(Filter)    => Tool::Filter(tr.try_into()?),
-            Some(Input)     => Tool::Input(tr.try_into()?),
-            Some(Intersect) => Tool::Intersect(tr.try_into()?),
-            Some(Join)      => Tool::Join(tr.try_into()?),
-            Some(Limit)     => Tool::Limit(tr.try_into()?),
-            Some(Output)    => Tool::Output(tr.try_into()?),
-            Some(Print)     => Tool::Print(tr.try_into()?),
-            Some(Project)   => Tool::Project(tr.try_into()?),
-            Some(Register)  => Tool::Register(tr.try_into()?),
-            Some(Schema)    => Tool::Schema(tr.try_into()?),
-            Some(Select)    => Tool::Select(tr.try_into()?),
-            Some(Sort)      => Tool::Sort(tr.try_into()?),
-            Some(Sql)       => Tool::Sql(tr.try_into()?),
-            Some(Union)     => Tool::Union(tr.try_into()?),
+            Some(Count)     => Tool::Count((tr.id, tr.try_into()?)),
+            Some(Describe)  => Tool::Describe(tr.id),
+            Some(Distinct)  => Tool::Distinct(tr.id),
+            Some(Drop)      => Tool::Drop((tr.id, tr.try_into()?)),
+            Some(Fill)      => Tool::Fill((tr.id, tr.try_into()?)),
+            Some(Filter)    => Tool::Filter((tr.id, tr.try_into()?)),
+            Some(Input)     => Tool::Input((tr.id, tr.try_into()?)),
+            Some(Intersect) => Tool::Intersect((tr.id, tr.try_into()?)),
+            Some(Join)      => Tool::Join((tr.id, tr.try_into()?)),
+            Some(Limit)     => Tool::Limit((tr.id, tr.try_into()?)),
+            Some(Output)    => Tool::Output((tr.id, tr.try_into()?)),
+            Some(Print)     => Tool::Print((tr.id, tr.try_into()?)),
+            Some(Project)   => Tool::Project((tr.id, tr.try_into()?)),
+            Some(Register)  => Tool::Register((tr.id, tr.try_into()?)),
+            Some(Schema)    => Tool::Schema(tr.id),
+            Some(Select)    => Tool::Select((tr.id, tr.try_into()?)),
+            Some(Sort)      => Tool::Sort((tr.id, tr.try_into()?)),
+            Some(Sql)       => Tool::Sql((tr.id, tr.try_into()?)),
+            Some(Union)     => Tool::Union((tr.id, tr.try_into()?)),
             _ => return Err(anyhow!("unknown tool: {}", resolve(name)))
         };
 
@@ -68,16 +68,16 @@ impl TryFrom<&ToolRef> for Tool {
 impl Tool {
     pub async fn run(&self, inputs: Option<Values>, ctx: &SessionContext) -> Result<Values>
     {
-        let outputs = if let Tool::Sql(args) = self {
-            sql::run(args, inputs, ctx).await?
+        let outputs = if let Tool::Sql((id, args)) = self {
+            sql::run(id, args, inputs, ctx).await?
         } else if self.is_source() {
             if inputs.is_some() {
                 return Err(anyhow!("{} tool does not take input", self.name()))
             }
 
             match self {
-                Tool::Input(args)    => input::run(args, ctx).await?,
-                Tool::Register(args) => register::run(args, ctx).await?,
+                Tool::Input((id, args))    => input::run(id, args, ctx).await?,
+                Tool::Register((id, args)) => register::run(id, args, ctx).await?,
                 _ => unreachable!("{} is not a source tool", self.name())
             }
         } else {
@@ -87,22 +87,22 @@ impl Tool {
 
             let inputs = inputs.unwrap();
             match self {
-                Tool::Count(args)     => count::run(args, inputs, ctx).await?,
-                Tool::Describe(args)  => describe::run(args, inputs).await?,
-                Tool::Distinct(args)  => distinct::run(args, inputs).await?,
-                Tool::Drop(args)      => drop::run(args, inputs).await?,
-                Tool::Fill(args)      => fill::run(args, inputs).await?,
-                Tool::Filter(args)    => filter::run(args, inputs).await?,
-                Tool::Intersect(args) => intersect::run(args, inputs).await?,
-                Tool::Join(args)      => join::run(args, inputs).await?,
-                Tool::Limit(args)     => limit::run(args, inputs).await?,
-                Tool::Output(args)    => output::run(args, inputs).await?,
-                Tool::Print(args)     => print::run(args, inputs).await?,
-                Tool::Project(args)   => project::run(args, inputs, ctx).await?,
-                Tool::Schema(args)    => schema::run(args, inputs).await?,
-                Tool::Select(args)    => select::run(args, inputs).await?,
-                Tool::Sort(args)      => sort::run(args, inputs).await?,
-                Tool::Union(args)     => union::run(args, inputs).await?,
+                Tool::Count((id, args))   => count::run(id, args, inputs, ctx).await?,
+                Tool::Describe(id)        => describe::run(id, inputs).await?,
+                Tool::Distinct(id)        => distinct::run(id, inputs).await?,
+                Tool::Drop((id, args))    => drop::run(id, args, inputs).await?,
+                Tool::Fill((id, args))    => fill::run(id, args, inputs).await?,
+                Tool::Filter((id, args))  => filter::run(id, args, inputs).await?,
+                Tool::Intersect((id, _))  => intersect::run(id, inputs).await?,
+                Tool::Join((id, args))    => join::run(id, args, inputs).await?,
+                Tool::Limit((id, args))   => limit::run(id, args, inputs).await?,
+                Tool::Output((id, args))  => output::run(id, args, inputs).await?,
+                Tool::Print((id, args))   => print::run(id, args, inputs).await?,
+                Tool::Project((id, args)) => project::run(id, args, inputs, ctx).await?,
+                Tool::Schema(id)          => schema::run(id, inputs).await?,
+                Tool::Select((id, args))  => select::run(id, args, inputs).await?,
+                Tool::Sort((id, args))    => sort::run(id, args, inputs).await?,
+                Tool::Union((id, _))      => union::run(id, inputs).await?,
                 _ => unreachable!("{} is not a sink tool", self.name())
             }
         };
@@ -138,34 +138,34 @@ impl Tool {
     pub fn id(&self) -> ToolId
     {
         match self {
-            Tool::Count(args)     => args.id,
-            Tool::Describe(args)  => args.id,
-            Tool::Distinct(args)  => args.id,
-            Tool::Drop(args)      => args.id,
-            Tool::Fill(args)      => args.id,
-            Tool::Filter(args)    => args.id,
-            Tool::Input(args)     => args.id,
-            Tool::Intersect(args) => args.id,
-            Tool::Join(args)      => args.id,
-            Tool::Limit(args)     => args.id,
-            Tool::Output(args)    => args.id,
-            Tool::Print(args)     => args.id,
-            Tool::Project(args)   => args.id,
-            Tool::Register(args)  => args.id,
-            Tool::Schema(args)    => args.id,
-            Tool::Select(args)    => args.id,
-            Tool::Sort(args)      => args.id,
-            Tool::Sql(args)       => args.id,
-            Tool::Union(args)     => args.id,
+            Tool::Count((id, _))     => *id,
+            Tool::Describe(id)       => *id,
+            Tool::Distinct(id)       => *id,
+            Tool::Drop((id, _))      => *id,
+            Tool::Fill((id, _))      => *id,
+            Tool::Filter((id, _))    => *id,
+            Tool::Input((id, _))     => *id,
+            Tool::Intersect((id, _)) => *id,
+            Tool::Join((id, _))      => *id,
+            Tool::Limit((id, _))     => *id,
+            Tool::Output((id, _))    => *id,
+            Tool::Print((id, _))     => *id,
+            Tool::Project((id, _))   => *id,
+            Tool::Register((id, _))  => *id,
+            Tool::Schema(id)         => *id,
+            Tool::Select((id, _))    => *id,
+            Tool::Sort((id, _))      => *id,
+            Tool::Sql((id, _))       => *id,
+            Tool::Union((id, _))     => *id,
         }
     }
 
     pub fn expand(&self) -> Vec<FlowRef>
     {
         match self {
-            Tool::Join(args)      => join::flows(args),
-            Tool::Intersect(args) => intersect::flows(args),
-            Tool::Union(args)     => union::flows(args),
+            Tool::Join((_, args))      => join::flows(args),
+            Tool::Intersect((_, args)) => intersect::flows(args),
+            Tool::Union((_, args))     => union::flows(args),
             _ => vec![],
         }
     }

@@ -5,7 +5,7 @@ use anvil_context::resolve;
 use crate::eval_expression;
 use crate::tools::{parse_expression, ArgValue, ToolArg, ToolId, ToolRef, Values};
 
-pub async fn run(args: &ProjectArgs, inputs: Values, ctx: &SessionContext) -> Result<Values>
+pub async fn run(_id: &ToolId, args: &ProjectArgs, inputs: Values, ctx: &SessionContext) -> Result<Values>
 {
     let df = if let Some(df) = inputs.get_one() {
         df.clone()
@@ -19,7 +19,6 @@ pub async fn run(args: &ProjectArgs, inputs: Values, ctx: &SessionContext) -> Re
 
 #[derive(Debug)]
 pub struct ProjectArgs {
-    pub id: ToolId,
     exprs: Vec<Expr>,
 }
 
@@ -47,6 +46,6 @@ impl TryFrom<&ToolRef> for ProjectArgs {
             }
         }
 
-        Ok(ProjectArgs { id: tr.id, exprs })
+        Ok(ProjectArgs { exprs })
     }
 }

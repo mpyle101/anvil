@@ -4,10 +4,10 @@ use datafusion::logical_expr::SortExpr;
 
 use crate::tools::{ToolArgs, ToolId, ToolRef, Values};
 
-pub async fn run(args: &SortArgs, inputs: Values) -> Result<Values>
+pub async fn run(id: &ToolId, args: &SortArgs, inputs: Values) -> Result<Values>
 {
     let df = inputs.get_one().cloned()
-        .ok_or_else(|| anyhow!("sort tool ({}) requires input", args.id))?;
+        .ok_or_else(|| anyhow!("sort tool ({id}) requires input"))?;
     let df = df.sort(args.exprs.clone())?;
 
     Ok(Values::new(df))
@@ -15,7 +15,6 @@ pub async fn run(args: &SortArgs, inputs: Values) -> Result<Values>
 
 #[derive(Debug)]
 pub struct SortArgs {
-    pub id: ToolId,
     exprs: Vec<SortExpr>,
 }
 
@@ -49,6 +48,6 @@ impl TryFrom<&ToolRef> for SortArgs {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        Ok(SortArgs { id: tr.id, exprs })
+        Ok(SortArgs { exprs })
     }
 }
