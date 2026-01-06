@@ -76,19 +76,17 @@ impl Tool {
             sql::run(id, args, inputs, ctx).await?
         } else if self.is_source() {
             if inputs.is_some() {
-                return Err(anyhow!("{} tool does not take input", self.name()))
+                return Err(anyhow!("{} ({}) tool does not take input", self.name(), self.id()))
             }
 
             match self {
                 Tool::Input((id, args))    => input::run(id, args, ctx).await?,
                 Tool::Register((id, args)) => register::run(id, args, ctx).await?,
-                _ => unreachable!("{} is not a source tool", self.name())
+                _ => unreachable!("{} ({}) is not a source tool", self.name(), self.id())
             }
+        } else if inputs.is_none() {
+            return Err(anyhow!("{} ({}) tool requires input(s)", self.name(), self.id()))
         } else {
-            if inputs.is_none() {
-                return Err(anyhow!("{} tool requires input(s)", self.name()))
-            }
-
             let inputs = inputs.unwrap();
             match self {
                 Tool::Count((id, args))   => count::run(id, args, inputs, ctx).await?,
