@@ -1,4 +1,4 @@
-# Variables are set via the binding operator: '|>' 
+# Variables are set via the binding operator: '>' 
 [input: './data/right.parquet'] | [select: 'id,email,title'] > a;
 [input: './data/left.parquet'] | [select: 'id,first_name,last_name'] > b;
 
