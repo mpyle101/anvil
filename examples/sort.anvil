@@ -1,10 +1,11 @@
 [input: './data/jester.parquet'] > flights;
 
 # Default sort is ascending
-#flights | [sort: DISTANCE='desc'] | [print: 10];
+flights | [sort: DISTANCE] | [print: 10];
+flights | [sort: 'DISTANCE'] | [print: 10];
 
-#flights | [sort: DISTANCE=desc] | [print: 10];
+flights | [sort: DISTANCE=desc] | [print: 10];
 
 # First sort AIR_TIME ascending and then DISTANCE descending
-flights | [sort: FL_DATE, AIR_TIME=desc] | [print: 10];
+flights | [sort: FL_DATE, AIR_TIME='desc'] | [print: 10];
 flights | [sort: FL_DATE=desc, DISTANCE=asc] | [print: 10];
