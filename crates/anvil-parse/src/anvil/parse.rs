@@ -176,10 +176,7 @@ impl ASTBuilder {
                         args.push(ToolArg::Positional(self.build_arg_value(value)?))
                     }
                     Rule::KEYWORD => {
-                        let mut inner = arg.into_inner();
-                        let ident = intern(inner.next().unwrap().as_str());
-                        let value = self.build_arg_value(inner.next().unwrap())?;
-                        args.push(ToolArg::Keyword { ident, value })
+                        args.push(self.build_keyword(arg)?)
                     }
                     _ => return Err(anyhow!("unexpected tool argument {:?}", arg.as_rule()))
                 }
@@ -187,6 +184,39 @@ impl ASTBuilder {
         }
 
         Ok(ToolRef { id: self.get_next_id(), name, args })
+    }
+
+    fn build_keyword(&mut self, pair: Pair<Rule>) -> Result<ToolArg>
+    {
+        use datafusion::arrow::datatypes::{DataType, TimeUnit};
+
+        let mut inner = pair.into_inner();
+        let x = inner.next().ok_or_else(|| anyhow!("keyword ident not found"))?;
+        let ident = intern(x.as_str());
+
+        let mut x = inner.next().ok_or_else(|| anyhow!("keyword type or value not found"))?;
+        let dtype = if let Rule::IDENTIFIER = x.as_rule() {
+            let dtype = match x.as_str() {
+                "bool" => DataType::Boolean,
+                "i64"  => DataType::Int64,
+                "f64"  => DataType::Float64,
+                "u64"  => DataType::UInt64,
+                "s"    => DataType::Timestamp(TimeUnit::Second, None),
+                "us"   => DataType::Timestamp(TimeUnit::Microsecond, None),
+                "ms"   => DataType::Timestamp(TimeUnit::Millisecond, None),
+                "ns"   => DataType::Timestamp(TimeUnit::Nanosecond, None),
+                "utf8" => DataType::Utf8,
+                _ => return Err(anyhow!("unknown datatype {}", x.as_str()))
+           };
+           x = inner.next().ok_or_else(|| anyhow!("keyword value not found"))?;
+           Some(dtype)
+        } else {
+            None
+        };
+
+        let value = self.build_arg_value(x)?;
+
+        Ok(ToolArg::Keyword { ident, value, dtype })
     }
 
     fn build_arg_value(&mut self, pair: Pair<Rule>) -> Result<ArgValue>

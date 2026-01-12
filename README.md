@@ -83,7 +83,7 @@ The resulting graph visually distinguishes tools and variables, and edge labels 
 An Anvil script is a sequence of **statements**. Each statement defines a **flow** of tools and variables connected by pipes (`|`).
 
 ```anvil
-[input: './data/users.parquet'] | [select: 'id,email'] | [print];
+[input: './data/users.parquet'] | [select: id='id', email='email'] | [print];
 ```
 
 Each tool consumes one or more dataframes and produces zero or more dataframes.

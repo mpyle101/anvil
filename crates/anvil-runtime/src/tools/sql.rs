@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
-use datafusion::prelude::SessionContext;
+use datafusion::prelude::{try_cast, SessionContext};
+use datafusion::arrow::datatypes::DataType;
 
 use anvil_context::{resolve, Symbol};
 use crate::tools::{ArgValue, ToolArg, ToolId, ToolRef, Values};
@@ -11,9 +12,13 @@ pub async fn run(id: &ToolId, args: &SqlArgs, inputs: Option<Values>, ctx: &Sess
     } else if let Some(v) = inputs {
         let df = v.get_one().unwrap();
         let mut exprs = vec![];
-        for (ident, sql) in &args.exprs {
+        for (ident, sql, dtype) in &args.exprs {
             let expr = df.parse_sql_expr(sql)?;
-            exprs.push(expr.alias(resolve(*ident)));
+            if let Some(dt) = dtype {
+                exprs.push(try_cast(expr.alias(resolve(*ident)), dt.clone()))
+            } else {
+                exprs.push(expr.alias(resolve(*ident)));
+            }
         }
         df.clone().select(exprs)?
     } else {
@@ -26,7 +31,7 @@ pub async fn run(id: &ToolId, args: &SqlArgs, inputs: Option<Values>, ctx: &Sess
 #[derive(Debug)]
 pub struct SqlArgs {
     sql: Option<String>,
-    exprs: Vec<(Symbol, String)>
+    exprs: Vec<(Symbol, String, Option<DataType>)>
 }
 
 impl TryFrom<&ToolRef> for SqlArgs {
@@ -44,10 +49,10 @@ impl TryFrom<&ToolRef> for SqlArgs {
                         _ => return Err(anyhow!("sql tool SQL must be string"))
                     }
                 }
-                ToolArg::Keyword { ident, value } => {
+                ToolArg::Keyword { ident, value, dtype } => {
                     match value {
-                        ArgValue::String(s) => exprs.push((*ident, s.clone())),
-                        _ => return Err(anyhow!("sql tool expression must be a string {value:?}"))
+                        ArgValue::String(s) => exprs.push((*ident, s.clone(), dtype.clone())),
+                        _ => return Err(anyhow!("sql tool expressions must be a string {value:?}"))
                     }
                 }
             }

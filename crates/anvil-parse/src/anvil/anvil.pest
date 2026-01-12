@@ -54,7 +54,7 @@ TOOL_ARGS   = {
     KEYWORD ~ ("," ~ KEYWORD)*
 }
 
-KEYWORD     = { IDENTIFIER ~ "=" ~ VALUE }
+KEYWORD     = { IDENTIFIER ~ (":" ~ IDENTIFIER)? ~ "=" ~ VALUE }
 
 POSITIONAL  = { !(IDENTIFIER ~ "=") ~ VALUE }
 
@@ -69,6 +69,8 @@ LITERAL     = { STRING | NUMBER | BOOLEAN }
 STRING      = @{ "'" ~ (!"'" ~ ANY)* ~ "'" }
 NUMBER      = @{ "-"? ~ ASCII_DIGIT+ }
 BOOLEAN     = { "true" | "false" }
+
+REGEX       = @{ "/" ~ ( "\\/" | (!"/" ~ ANY) )* ~ "/" }
 
 IDENTIFIER  = @{ (ASCII_ALPHANUMERIC | "_")+ }
 

@@ -61,7 +61,7 @@ The pipe operator (`|`) connects the output of one step to the input of the next
 Variables may appear anywhere a tool can appear.
 
 ```anvil
-df | [select: 'id,name'] | [print];
+df | [select: id='id', name='name'] | [print];
 ```
 
 ---
@@ -78,7 +78,7 @@ BIND = { ">" }
 ### Example
 
 ```anvil
-[input: './data/file.parquet'] | [select: 'id'] > df;
+[input: './data/file.parquet'] | [select: id='id'] > df;
 ```
 
 ---
@@ -155,7 +155,7 @@ Flows wrapped in parentheses are parsed as **subflows**. These allow tools to ac
 ```anvil
 [join:
   df_lt=(left_df),
-  df_rt=([input: './data/right.parquet'] | [select: 'id,name'])
+  df_rt=([input: './data/right.parquet'] | [select: id, name='name'])
 ]
 ```
 

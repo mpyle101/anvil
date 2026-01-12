@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use datafusion::prelude::{Expr, SessionContext};
+use datafusion::prelude::{try_cast, Expr, SessionContext};
 
 use anvil_context::resolve;
 use crate::eval_expression;
@@ -33,14 +33,19 @@ impl TryFrom<&ToolRef> for ProjectArgs {
                 ToolArg::Positional(_) => {
                     return Err(anyhow!("projection tool only accepts keyword arguments"))
                 }
-                ToolArg::Keyword { ident, value } => {
+                ToolArg::Keyword { ident, value, dtype } => {
                     match value {
                         ArgValue::String(s) => {
                             let expr  = parse_expression(s)?;
                             let right = eval_expression(&expr)?;
-                            exprs.push(right.alias(resolve(*ident)));
+                            let alias = resolve(*ident);
+                            if let Some(dt) = dtype {
+                                exprs.push(try_cast(right.alias(alias), dt.clone()))
+                            } else {
+                                exprs.push(right.alias(alias));
+                            }
                         }
-                        _ => return Err(anyhow!("projection tool expression must be a string {value:?}"))
+                        _ => return Err(anyhow!("projection tool expressions must be a string {value:?}"))
                     }
                 }
             }

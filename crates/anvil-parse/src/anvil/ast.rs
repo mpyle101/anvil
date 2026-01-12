@@ -1,5 +1,7 @@
 use std::fmt;
 
+use datafusion::arrow::datatypes::DataType;
+
 use anvil_context::Symbol;
 
 #[derive(Debug)]
@@ -71,7 +73,11 @@ pub struct ToolRef {
 
 #[derive(Clone, Debug)]
 pub enum ToolArg {
-    Keyword { ident: Symbol, value: ArgValue },
+    Keyword {
+        ident: Symbol,
+        value: ArgValue,
+        dtype: Option<DataType>,
+    },
     Positional(ArgValue),
 }
 

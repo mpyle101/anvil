@@ -1,7 +1,9 @@
 use anyhow::{anyhow, Result};
-use datafusion::prelude::{col, Expr};
+use datafusion::prelude::{col, try_cast, Expr};
 
-use crate::tools::{ToolArgs, ToolId, ToolRef, Values};
+use crate::tools::{ArgValue, ToolArgs, ToolId, ToolRef, Values};
+
+use anvil_context::resolve;
 
 pub async fn run(id: &ToolId, args: &SelectArgs, inputs: Values) -> Result<Values>
 {
@@ -23,17 +25,28 @@ impl TryFrom<&ToolRef> for SelectArgs {
     fn try_from(tr: &ToolRef) -> Result<Self>
     {
         let args = ToolArgs::new(&tr.args)?;
-        args.check_named_args(&[])?;
 
-        let cols  = args.required_positional_string(0, "cols")?;
-        let exprs = cols.split(',')
-            .map(|s| {
-                match s.split_once(':') {
-                    Some((s1, s2)) => col(s1).alias(s2),
-                    None => col(s)
+        let mut exprs = vec![];
+        for v in args.positional {
+            match v {
+                ArgValue::Ident(s)  => exprs.push(col(s)),
+                ArgValue::String(s) => exprs.push(col(s)),
+                _ => return Err(anyhow!("select columns must be a string or identifier: {v:?}"))
+            }
+        }
+
+        for (sym, (v, dt)) in args.keyword {
+            match v {
+                ArgValue::Ident(s) | ArgValue::String(s) => {
+                    if let Some(dtype) = dt {
+                        exprs.push(try_cast(col(s).alias(resolve(sym)), dtype))
+                    } else {
+                        exprs.push(col(s).alias(resolve(sym)))
+                    }
                 }
-            })
-            .collect::<Vec<_>>();
+                _ => return Err(anyhow!("select columns must a be string or identifier: {v:?}"))
+            }
+        }
 
         Ok(SelectArgs { exprs })
     }
