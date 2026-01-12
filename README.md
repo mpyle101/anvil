@@ -170,7 +170,7 @@ Variables are first-class graph nodes — they represent stored data, not execut
 ### Mixed positional + keyword (positional first)
 
 ```anvil
-[sort: 'id', descending=true]
+[sort: id=desc]
 ```
 
 ### Flow arguments (subflows)
@@ -255,7 +255,7 @@ Examples:
 ```anvil
 [filter: '$age > 30']
 [project: total='$price * $quantity']
-[sort: '$created_at']
+[sort: created_at, user_id]
 ```
 
 Column references use `$column_name`.

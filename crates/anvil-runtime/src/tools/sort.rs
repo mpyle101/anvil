@@ -2,7 +2,8 @@ use anyhow::{anyhow, Result};
 use datafusion::prelude::col;
 use datafusion::logical_expr::SortExpr;
 
-use crate::tools::{ToolArgs, ToolId, ToolRef, Values};
+use crate::tools::{ArgValue, ToolArgs, ToolId, ToolRef, Values};
+use anvil_context::resolve;
 
 pub async fn run(id: &ToolId, args: &SortArgs, inputs: Values) -> Result<Values>
 {
@@ -24,29 +25,33 @@ impl TryFrom<&ToolRef> for SortArgs {
     fn try_from(tr: &ToolRef) -> Result<Self>
     {
         let args = ToolArgs::new(&tr.args)?;
-        args.check_named_args(&[])?;
 
-        let cols = args.required_positional_string(0, "cols")?;
-        let exprs = cols.split(',')
-            .map(|s| {
-                let parts = s.splitn(3, ':').collect::<Vec<_>>();
-                if parts.is_empty() || parts[0].is_empty() {
-                    return Err(anyhow!("sort requires non-empty expressions"))
+        let mut exprs = vec![];
+        for v in args.positional {
+            match v {
+                ArgValue::Ident(s) | ArgValue::String(s) => {
+                    let column = col(format!(r#""{s}""#));
+                    exprs.push(column.sort(true, false))
                 }
-                let expr = col(format!(r#""{}""#, parts[0]));
-                let sort = match parts.len() {
-                    1 => expr.sort(false, false),
-                    2 => expr.sort(parts[1] == true.to_string(), false),
-                    _ => {
-                        expr.sort(
-                            parts[1] == true.to_string(),
-                            parts[2] == true.to_string(),
-                        )
+                _ => return Err(anyhow!("sort columns must be a string or identifier: {v:?}"))
+            }
+        }
+
+        for (sym, (v, _)) in args.keyword {
+            let column = col(format!(r#""{}""#, resolve(sym)));
+            match v {
+                ArgValue::Ident(s) | ArgValue::String(s) => {
+                    if s == "desc" {
+                        exprs.push(column.sort(false, false))
+                    } else if s == "asc" {
+                        exprs.push(column.sort(true, false))
+                    } else {
+                        return Err(anyhow!("sort direction must be 'asc' or 'desc': {s}"))
                     }
-                };
-                Ok(sort)
-            })
-            .collect::<Result<Vec<_>>>()?;
+                }
+                _ => return Err(anyhow!("sort direction must be a string or identifier: {v:?}"))
+            }
+        }
 
         Ok(SortArgs { exprs })
     }

@@ -44,7 +44,7 @@ impl TryFrom<&ToolRef> for SelectArgs {
                         exprs.push(col(s).alias(resolve(sym)))
                     }
                 }
-                _ => return Err(anyhow!("select columns must a be string or identifier: {v:?}"))
+                _ => return Err(anyhow!("select columns must be a string or identifier: {v:?}"))
             }
         }
 
