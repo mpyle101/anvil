@@ -38,10 +38,12 @@ impl TryFrom<&ToolRef> for SelectArgs {
         for (sym, (v, dt)) in args.keyword {
             match v {
                 ArgValue::Ident(s) | ArgValue::String(s) => {
+                    let alias  = resolve(sym);
+                    let column = col(format!(r#""{s}""#));  // preserve case
                     if let Some(dtype) = dt {
-                        exprs.push(try_cast(col(s).alias(resolve(sym)), dtype))
+                        exprs.push(try_cast(column.alias(alias), dtype))
                     } else {
-                        exprs.push(col(s).alias(resolve(sym)))
+                        exprs.push(column.alias(alias))
                     }
                 }
                 _ => return Err(anyhow!("select columns must be a string or identifier: {v:?}"))

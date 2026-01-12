@@ -1,0 +1,12 @@
+# Variables are set via the binding operator: '>' 
+[input: './data/jester.parquet'] > flights;
+
+flights | [schema] | [print];
+
+flights | [select:
+  date=FL_DATE,
+  time='AIR_TIME',
+  distance=DISTANCE,
+  departure='DEP_TIME',
+  arrival=ARR_TIME
+] | [schema] | [print];
