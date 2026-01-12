@@ -36,8 +36,9 @@ impl ToolArgs {
     pub fn required_positional_string(&self, index: usize, name: &str) -> Result<String>
     {
         match self.positional.get(index) {
+            Some(ArgValue::Ident(s))  => Ok(s.clone()),
             Some(ArgValue::String(s)) => Ok(s.clone()),
-            Some(_) => Err(anyhow!("'{name}' must be a string")),
+            Some(_) => Err(anyhow!("'{name}' must be a string or identifier")),
             None => Err(anyhow!("missing required positional argument '{name}'")),
         }
     }
@@ -69,8 +70,9 @@ impl ToolArgs {
     pub fn optional_positional_string(&self, index: usize, name: &str) -> Result<Option<String>>
     {
         match self.positional.get(index) {
+            Some(ArgValue::Ident(s))  => Ok(Some(s.clone())),
             Some(ArgValue::String(s)) => Ok(Some(s.clone())),
-            Some(_) => Err(anyhow!("'{name}' must be a string")),
+            Some(_) => Err(anyhow!("'{name}' must be a string or identifier")),
             None => Ok(None),
         }
     }
@@ -87,8 +89,9 @@ impl ToolArgs {
     pub fn optional_string(&self, key: Symbol) -> Result<Option<String>>
     {
         match self.keyword.get(&key) {
+            Some((ArgValue::Ident(s), _))  => Ok(Some(s.clone())),
             Some((ArgValue::String(s), _)) => Ok(Some(s.clone())),
-            Some(_) => Err(anyhow!("{} must be a string", resolve(key))),
+            Some(_) => Err(anyhow!("{} must be a string or identifier", resolve(key))),
             None => Ok(None),
         }
     }

@@ -5,9 +5,9 @@
 [join:
   L,
   ([input: './data/right.parquet'] | [select: email, title, id_r='id']),
-  type='inner',
+  type=inner,
   cols_lt='id',
-  cols_rt='id_r'
+  cols_rt=id_r
 ] 
 | [drop: id_r]
 | [print: 10];
