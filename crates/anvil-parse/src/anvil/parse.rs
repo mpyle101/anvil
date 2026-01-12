@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use datafusion::arrow::datatypes::DataType;
 use pest::Parser;
-use pest::iterators::Pair;
+use pest::iterators::{Pair, Pairs};
 
 use anvil_context::{intern, Symbol};
 
@@ -267,27 +267,15 @@ impl ASTBuilder {
             "ns"   => DataType::Timestamp(TimeUnit::Nanosecond, None),
             "utf8" => DataType::Utf8,
             "decimal" => {
-                if inner.len() != 2 {
-                    return Err(anyhow!("decimal types require precision and scale"))
-                }
-                let prec  = get_integer(inner.next().unwrap())? as u8;
-                let scale = get_integer(inner.next().unwrap())? as i8;
+                let (prec, scale) = get_decimal_params(inner)?;
                 DataType::Decimal64(prec, scale)
             }
             "bigdec" => {
-                if inner.len() != 2 {
-                    return Err(anyhow!("big decimal types require precision and scale"))
-                }
-                let prec  = get_integer(inner.next().unwrap())? as u8;
-                let scale = get_integer(inner.next().unwrap())? as i8;
+                let (prec, scale) = get_decimal_params(inner)?;
                 DataType::Decimal128(prec, scale)
             }
             "hugedec" => {
-                if inner.len() != 2 {
-                    return Err(anyhow!("huge decimal types require precision and scale"))
-                }
-                let prec  = get_integer(inner.next().unwrap())? as u8;
-                let scale = get_integer(inner.next().unwrap())? as i8;
+                let (prec, scale) = get_decimal_params(inner)?;
                 DataType::Decimal256(prec, scale)
             }
             _ => return Err(anyhow!("unknown datatype {}", type_name.as_str()))
@@ -297,13 +285,23 @@ impl ASTBuilder {
     }
 }
 
+fn get_decimal_params(mut inner: Pairs<Rule>) -> Result<(u8, i8)>
+{
+    if inner.len() != 2 {
+        return Err(anyhow!("decimal types require precision and scale"))
+    }
+    let prec  = get_integer(inner.next().unwrap())? as u8;
+    let scale = get_integer(inner.next().unwrap())? as i8;
+
+    Ok((prec, scale))
+}
 
 fn get_integer(pair: Pair<Rule>) -> Result<i64>
 {
     let v = if let Rule::NUMBER = pair.as_rule() {
         pair.as_str().parse::<i64>()?
     } else {
-        return Err(anyhow!("unexpected integer {:?}", pair.as_rule()))
+        return Err(anyhow!("expected number {:?}", pair.as_rule()))
     };
 
     Ok(v)
