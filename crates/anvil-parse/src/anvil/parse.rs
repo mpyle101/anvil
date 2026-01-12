@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use datafusion::arrow::datatypes::DataType;
 use pest::Parser;
 use pest::iterators::Pair;
 
@@ -188,33 +189,26 @@ impl ASTBuilder {
 
     fn build_keyword(&mut self, pair: Pair<Rule>) -> Result<ToolArg>
     {
-        use datafusion::arrow::datatypes::{DataType, TimeUnit};
+        let ident: Symbol;
+        let value: ArgValue;
+        let dtype: Option<DataType>;
 
         let mut inner = pair.into_inner();
-        let x = inner.next().ok_or_else(|| anyhow!("keyword ident not found"))?;
-        let ident = intern(x.as_str());
-
-        let mut x = inner.next().ok_or_else(|| anyhow!("keyword type or value not found"))?;
-        let dtype = if let Rule::IDENTIFIER = x.as_rule() {
-            let dtype = match x.as_str() {
-                "bool" => DataType::Boolean,
-                "i64"  => DataType::Int64,
-                "f64"  => DataType::Float64,
-                "u64"  => DataType::UInt64,
-                "s"    => DataType::Timestamp(TimeUnit::Second, None),
-                "us"   => DataType::Timestamp(TimeUnit::Microsecond, None),
-                "ms"   => DataType::Timestamp(TimeUnit::Millisecond, None),
-                "ns"   => DataType::Timestamp(TimeUnit::Nanosecond, None),
-                "utf8" => DataType::Utf8,
-                _ => return Err(anyhow!("unknown datatype {}", x.as_str()))
-           };
-           x = inner.next().ok_or_else(|| anyhow!("keyword value not found"))?;
-           Some(dtype)
-        } else {
-            None
-        };
-
-        let value = self.build_arg_value(x)?;
+        match inner.len() {
+            0 => return Err(anyhow!("keyword identifier not found")),
+            1 => return Err(anyhow!("keyword requires value: {}", inner.as_str())),
+            2 => {
+                ident = intern(inner.next().unwrap().as_str());
+                dtype = None;
+                value = self.build_arg_value(inner.next().unwrap())?;
+            }
+            3 => {
+                ident = intern(inner.next().unwrap().as_str());
+                dtype = Some(self.build_datatype(inner.next().unwrap())?);
+                value = self.build_arg_value(inner.next().unwrap())?;
+            }
+            _ => return Err(anyhow!("invalid keyword expresion: {}", inner.as_str())),
+        }
 
         Ok(ToolArg::Keyword { ident, value, dtype })
     }
@@ -251,4 +245,66 @@ impl ASTBuilder {
 
         Ok(av)
     }
+
+    fn build_datatype(&self, pair: Pair<Rule>) -> Result<DataType>
+    {
+        use datafusion::arrow::datatypes::TimeUnit;
+
+        let mut inner = pair.into_inner();
+
+        let type_name = inner.next().ok_or_else(|| anyhow!("empty datatype identifier encountered"))?;
+        let dtype = match type_name.as_str() {
+            "bool" => DataType::Boolean,
+            "f64"  => DataType::Float64,
+            "f32"  => DataType::Float32,
+            "i32"  => DataType::Int32,
+            "i64"  => DataType::Int64,
+            "u32"  => DataType::UInt32,
+            "u64"  => DataType::UInt64,
+            "s"    => DataType::Timestamp(TimeUnit::Second, None),
+            "us"   => DataType::Timestamp(TimeUnit::Microsecond, None),
+            "ms"   => DataType::Timestamp(TimeUnit::Millisecond, None),
+            "ns"   => DataType::Timestamp(TimeUnit::Nanosecond, None),
+            "utf8" => DataType::Utf8,
+            "decimal" => {
+                if inner.len() != 2 {
+                    return Err(anyhow!("decimal types require precision and scale"))
+                }
+                let prec  = get_integer(inner.next().unwrap())? as u8;
+                let scale = get_integer(inner.next().unwrap())? as i8;
+                DataType::Decimal64(prec, scale)
+            }
+            "bigdec" => {
+                if inner.len() != 2 {
+                    return Err(anyhow!("big decimal types require precision and scale"))
+                }
+                let prec  = get_integer(inner.next().unwrap())? as u8;
+                let scale = get_integer(inner.next().unwrap())? as i8;
+                DataType::Decimal128(prec, scale)
+            }
+            "hugedec" => {
+                if inner.len() != 2 {
+                    return Err(anyhow!("huge decimal types require precision and scale"))
+                }
+                let prec  = get_integer(inner.next().unwrap())? as u8;
+                let scale = get_integer(inner.next().unwrap())? as i8;
+                DataType::Decimal256(prec, scale)
+            }
+            _ => return Err(anyhow!("unknown datatype {}", type_name.as_str()))
+        };
+
+        Ok(dtype)
+    }
+}
+
+
+fn get_integer(pair: Pair<Rule>) -> Result<i64>
+{
+    let v = if let Rule::NUMBER = pair.as_rule() {
+        pair.as_str().parse::<i64>()?
+    } else {
+        return Err(anyhow!("unexpected integer {:?}", pair.as_rule()))
+    };
+
+    Ok(v)
 }

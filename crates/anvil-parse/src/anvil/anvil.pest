@@ -54,7 +54,9 @@ TOOL_ARGS   = {
     KEYWORD ~ ("," ~ KEYWORD)*
 }
 
-KEYWORD     = { IDENTIFIER ~ (":" ~ IDENTIFIER)? ~ "=" ~ VALUE }
+KEYWORD     = { IDENTIFIER ~ (":" ~ TYPE_EXPR)? ~ "=" ~ VALUE }
+
+TYPE_EXPR   = { IDENTIFIER ~ ("(" ~ NUMBER ~ ("," ~ NUMBER)? ~ ")")? }
 
 POSITIONAL  = { !(IDENTIFIER ~ "=") ~ VALUE }
 

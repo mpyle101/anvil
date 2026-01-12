@@ -8,5 +8,6 @@ flights | [select:
   time='AIR_TIME',
   dist:i64=DISTANCE,
   departure:f64='DEP_TIME',
-  arrival=ARR_TIME
+  arrival=ARR_TIME,
+  dec:decimal(10,2)=DISTANCE
 ] | [schema] | [print];
